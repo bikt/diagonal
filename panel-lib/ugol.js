@@ -1,0 +1,161 @@
+/* © Сергей Гуров · Михаил Матвеев · Александр Копинов, 2026 · панель стендов · метод «Основа» · stendy.vercel.app */
+/* Угол — кольцо вместо дорожки: направление видно, а не вычисляется из числа.
+   Снят с Tweakpane camerakit (cameraring, cocopon) и euler-режима
+   @0b5vr/tweakpane-plugin-rotation. Трёхмерный гизмо не переносил: в стендах
+   углы плоские — завал оси, наклон кольца, начало отсчёта, разворот рамки.
+
+   Слайдер под угол врёт формой: он прямой, а величина круговая, и «85°» на
+   дорожке ничем не отличается от «85 чего угодно». Кольцо показывает угол углом.
+
+   Правки 2026-09-01 по замечаниям Сергея. Круг вырос вдвое (30 → 56 px,
+   площадь хвата вчетверо). Захват относительный, как в Фигме: нажатие НЕ
+   прыгает к месту клика — берёшь угол, где он стоит, и ведёшь; раньше
+   значение слетало дважды: прыжком при захвате и переброской через границу
+   сектора (0° рядом с 360° по кругу, но не по шкале). С Shift ход грубее,
+   по 5°. Число справа правится щелчком: стрелки ±1, с Shift ±10, запятая
+   читается как точка. Дабл-клик по кругу возвращает исходный угол.
+
+   Объявление:  ['ugol', 'Угол, °', 'ugol', 45, 90]        — сектор допустимого
+                ['ugol', 'Поворот, °', 'ugol', 0, 360, { shag: 5 }]
+   Значение:    число в градусах                                                */
+(function () {
+  var STIL = '.st-ugol{display:flex;align-items:center;gap:10px;margin-left:auto;padding:4px 0}' +
+    '.st-ugol canvas{display:block;cursor:grab;touch-action:none}' +
+    '.st-ugol canvas:active{cursor:grabbing}' +
+    '.st-ugol span{min-width:4ch;text-align:right;color:var(--st-text-2);' +
+    'font-variant-numeric:tabular-nums;cursor:pointer}';
+
+  StendPanel.tip('ugol', function (row, d, P, api) {
+    if (!document.getElementById('st-ugol-css')) {
+      var s = document.createElement('style'); s.id = 'st-ugol-css';
+      s.textContent = STIL; document.head.appendChild(s);
+    }
+    var ot = typeof d[3] === 'number' ? d[3] : 0;
+    var do_ = typeof d[4] === 'number' ? d[4] : 360;
+    var o = (typeof d[4] === 'object' ? d[4] : d[5]) || {};
+    /* Размеры сняты с макета «Панель стендов — тема Эпл», заготовка
+       «Завал оси» (узел 89:5338): кольцо 90, ручка 7, волосяные в 1 px.
+       Полотно берётся на ручку шире кольца — иначе ручка, сидящая НА
+       окружности, срезается краем канваса на четырёх углах круга. */
+    var shag = o.shag || 1, R = o.razmer || 90;   // диаметр кольца, макет // без ручки
+    var RUCHKA = 7, POLOTNO = R + RUCHKA;         // ручка и полотно, макет // без ручки
+    var SETKA = '#3A3A3E';                        // направляющие внутри кольца, макет // без ручки
+
+    var box = document.createElement('div'); box.className = 'st-ugol';
+    var cv = document.createElement('canvas');
+    var val = document.createElement('span');
+    val.title = 'точный ввод числом';
+    box.appendChild(cv); box.appendChild(val); row.appendChild(box);
+    var ctx = cv.getContext('2d');
+
+    function risovat() {
+      var dpr = window.devicePixelRatio || 1;
+      cv.width = POLOTNO * dpr; cv.height = POLOTNO * dpr;
+      cv.style.width = POLOTNO + 'px'; cv.style.height = POLOTNO + 'px';
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      var c = POLOTNO / 2, r = R / 2 - 0.5, a = P[d[0]] * Math.PI / 180;
+      ctx.clearRect(0, 0, POLOTNO, POLOTNO);
+      var tok = getComputedStyle(document.documentElement);
+      var volos = (tok.getPropertyValue('--st-hairline') || '').trim() || 'rgba(84,84,88,.6)';
+      // кольцо — волосяная линия разделителя, тот же токен, что у макета
+      ctx.strokeStyle = volos; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.arc(c, c, r, 0, 6.284); ctx.stroke();
+      /* Направляющие по макету: горизонталь сплошная, вертикаль пунктиром
+         1 через 4. Обе идут во весь поперечник кольца, отступая по пикселю
+         от края. Ноль, прямой угол и развёрнутый читаются без счёта. */
+      ctx.strokeStyle = SETKA;
+      ctx.beginPath(); ctx.moveTo(c - r + 0.5, c); ctx.lineTo(c + r - 0.5, c); ctx.stroke();
+      ctx.setLineDash([1, 4]);
+      ctx.beginPath(); ctx.moveTo(c, c - r + 0.5); ctx.lineTo(c, c + r - 0.5); ctx.stroke();
+      ctx.setLineDash([]);
+      // сектор допустимого: видно, куда угол ходить не может
+      if (do_ - ot < 360) {
+        ctx.strokeStyle = 'rgba(255,255,255,.22)'; ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.arc(c, c, r, -do_ * Math.PI / 180, -ot * Math.PI / 180);
+        ctx.stroke();
+      }
+      /* Луч идёт ОТ ЦЕНТРА к ручке и заканчивается ею — так в макете.
+         Точки в центре нет: центр держат направляющие, а не заливка. */
+      var hx = c + Math.cos(-a) * r, hy = c + Math.sin(-a) * r;
+      ctx.strokeStyle = api.accent(); ctx.lineWidth = 1; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(c, c); ctx.lineTo(hx, hy); ctx.stroke();
+      ctx.lineCap = 'butt';
+      ctx.fillStyle = api.accent();
+      ctx.beginPath(); ctx.arc(hx, hy, RUCHKA / 2, 0, 6.284); ctx.fill();   // ручка на самой окружности
+      val.textContent = parseFloat(P[d[0]].toFixed(2));
+    }
+    function ugol_kursora(e) { // сырой угол указателя, 0…360
+      var b = cv.getBoundingClientRect();
+      var a = Math.atan2(-(e.clientY - b.top - b.height / 2), e.clientX - b.left - b.width / 2);
+      var gr = a * 180 / Math.PI;
+      return gr < 0 ? gr + 360 : gr;
+    }
+    /* Захват относительный: на нажатии значение НЕ меняется — запоминаем,
+       где рука и где угол, дальше ведём разницей. Абсолютный захват давал
+       два срыва: прыжок к месту клика и переброску через границу сектора,
+       где 0° и 360° соседи по кругу, но края по шкале. */
+    /* Разница копится ПО КАДРАМ, не от точки нажатия: кратчайшая дуга от
+       старта не бывает больше 180°, и один захват не мог провернуть круг —
+       за 180 разница меняла знак и значение «сбрасывалось» (поймано
+       Сергеем на приёмке 02.09; сектор 0…90 этот дефект маскировал).
+       Полный круг заворачивается: 360 и 0 — соседи, крути бесконечно.
+       Упоры остаются только у настоящего сектора. */
+    var tyanem = false, ruka0 = 0, nakop = 0;
+    var krug = (do_ - ot) >= 360;
+    cv.addEventListener('pointerdown', function (e) {
+      tyanem = true; cv.setPointerCapture(e.pointerId);
+      ruka0 = ugol_kursora(e); nakop = P[d[0]];
+    });
+    cv.addEventListener('pointermove', function (e) {
+      if (!tyanem) return;
+      var gr = ugol_kursora(e);
+      var raznica = gr - ruka0;
+      if (raznica > 180) raznica -= 360;      // шаг кадра — всегда короткой дугой
+      if (raznica < -180) raznica += 360;
+      ruka0 = gr;
+      nakop += raznica;
+      if (krug) nakop = ((nakop - ot) % 360 + 360) % 360 + ot;
+      else nakop = Math.min(do_, Math.max(ot, nakop));
+      var krupno = e.shiftKey ? Math.max(5, shag) : shag; // Shift — грубее, по 5°
+      var v = Math.round(nakop / krupno) * krupno;
+      v = krug ? ((v - ot) % 360 + 360) % 360 + ot : Math.min(do_, Math.max(ot, v));
+      if (v !== P[d[0]]) { P[d[0]] = v; risovat(); api.save(); }
+    });
+    cv.addEventListener('pointerup', function () { tyanem = false; });
+    // дабл-клик — откат этой ручки к исходному, как у слайдеров
+    cv.addEventListener('dblclick', function () {
+      if (api.defaults && api.defaults[d[0]] !== undefined) {
+        P[d[0]] = api.defaults[d[0]];
+        risovat(); api.save();
+      }
+    });
+    // клик по числу — точный ввод (Enter/уход — принять, Esc — отмена)
+    val.addEventListener('click', function () {
+      var ked = document.createElement('input');
+      ked.type = 'text'; ked.inputMode = 'decimal'; ked.className = 'val-edit';
+      ked.value = parseFloat(P[d[0]].toFixed(2));
+      if (StendPanel.klavishi) StendPanel.klavishi(ked); // стрелки ±1, Shift ±10
+      box.replaceChild(ked, val);
+      ked.focus(); ked.select();
+      var gotovo = false;
+      function prinyat(ok) {
+        if (gotovo) return; gotovo = true;
+        box.replaceChild(val, ked);
+        var v = StendPanel.vyrazhenie   // выражения, как в соседних органах
+          ? StendPanel.vyrazhenie(ked.value, P[d[0]])
+          : parseFloat(String(ked.value).replace(',', '.'));
+        if (ok && !isNaN(v)) { P[d[0]] = Math.min(do_, Math.max(ot, v)); api.save(); }
+        risovat();
+      }
+      ked.addEventListener('keydown', function (ev) {
+        if (ev.key === 'Enter') prinyat(true);
+        else if (ev.key === 'Escape') prinyat(false);
+      });
+      ked.addEventListener('blur', function () { prinyat(true); });
+    });
+    api.repaints.push(risovat);
+    api.controls[d[0]] = risovat;
+    setTimeout(risovat, 0);
+  });
+})();

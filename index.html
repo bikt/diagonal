@@ -1,0 +1,415 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./panel.css">
+  <title>Родченко — две колонки</title>
+  <!--
+    Закон: раскладка смотрит на ширину окна, порядок фрагментов статьи
+    и прокрутку.
+    На широком экране заголовки занимают левую колонку, а текст — правую.
+    Каждый фрагмент получает отдельную строку, поэтому при сведении колонок
+    содержание не накладывается друг на друга.
+    Прокрутка плавно ведёт ленту без предела: после последнего фрагмента
+    начинается точная копия первого.
+    Середина окна — управляющая позиция: заголовки и основной текст плавно
+    проходят через неё из своих колонок к противоположному краю. Направление каждой из двух осей
+    задаётся отдельно: прокрутка ведёт каждый слой вдоль его оси.
+  -->
+  <style>
+    :root {
+      --page-edge: clamp(1.25rem, 5vw, 6rem);
+      --column-gap: clamp(1.5rem, 7vw, 10rem);
+      --page-color: #ffffff;
+      --text-color: #111111;
+      --heading-color: #808080;
+      --body-size: 18px;
+      --body-align: left;
+      --heading-size: 18px;
+      --heading-field: 100px;
+    }
+
+    * { box-sizing: border-box; }
+
+    html { background: var(--page-color); }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      overflow: hidden;
+      background: var(--page-color);
+      color: var(--text-color);
+      font-family: "Inter", Arial, Helvetica, sans-serif;
+      font-size: var(--body-size);
+    }
+
+    h1,
+    h2,
+    p { margin: 0; }
+
+    .longread-window {
+      block-size: 100vh;
+      overflow: hidden;
+    }
+
+    .article {
+      padding: 0;
+      will-change: transform;
+    }
+
+    .article__cycle {
+      padding-inline: var(--page-edge);
+    }
+
+    .article__row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      column-gap: var(--column-gap);
+    }
+
+    .article__heading {
+      display: grid;
+      grid-template-columns: max-content;
+      grid-column: 1;
+      justify-content: start;
+      min-inline-width: 0;
+      padding-block: var(--heading-field);
+      will-change: transform;
+    }
+    .article__content {
+      grid-column: 2;
+      will-change: transform;
+    }
+
+    .section__number {
+      flex: 0 0 auto;
+      grid-column: 1;
+      grid-row: 2;
+      justify-self: start;
+      font-size: var(--heading-size);
+      color: var(--heading-color);
+      font-style: italic;
+      letter-spacing: 0.1em;
+      line-height: 1;
+    }
+
+    h2 {
+      grid-column: 1;
+      grid-row: 1;
+      font-size: var(--heading-size);
+      font-weight: 500;
+      color: var(--heading-color);
+      letter-spacing: 0;
+      line-height: 1.1;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .article__content {
+      max-inline-size: 42rem;
+    }
+
+    .article__content p {
+      line-height: 1.32;
+      text-align: var(--body-align);
+    }
+
+    @media (max-width: 46rem) {
+      .article__row { grid-template-columns: 1fr; }
+      .article__heading,
+      .article__content { grid-column: 1; }
+    }
+  </style>
+</head>
+<body>
+  <div class="longread-window">
+    <main class="article">
+      <div class="article__cycle">
+    <section class="article__row">
+      <div class="article__heading"><span class="section__number">(01)</span><h2>Родченко и искусство</h2></div>
+    </section>
+    <section class="article__row">
+      <div class="article__content"><p>Будущий художник рано оказался рядом с театром и искусством. Учёба в Казани, встреча с футуристами и переезд в Москву задали ему новое направление.</p></div>
+    </section>
+
+    <section class="article__row">
+      <div class="article__heading"><span class="section__number">(02)</span><h2>Родченко, Татлин и Малевич</h2></div>
+    </section>
+    <section class="article__row">
+      <div class="article__content"><p>В Москве Родченко сблизился с Татлиным и спорил с идеями Малевича. Его интересовали конструкция, материал и новые способы делать искусство.</p></div>
+    </section>
+
+    <section class="article__row">
+      <div class="article__heading"><span class="section__number">(03)</span><h2>Родченко и фотомонтаж</h2></div>
+    </section>
+    <section class="article__row">
+      <div class="article__content"><p>Фотомонтаж стал для него точным языком иллюстрации и агитации: сочетание фрагментов позволяло собирать выразительное сообщение без лишних деталей.</p></div>
+    </section>
+
+    <section class="article__row">
+      <div class="article__heading"><span class="section__number">(04)</span><h2>«Реклам-конструкторы»</h2></div>
+    </section>
+    <section class="article__row">
+      <div class="article__content"><p>В работе с Маяковским Родченко соединял текст и графику. Плакат для него был конструкцией, где форма служит ясному сообщению.</p></div>
+    </section>
+
+    <section class="article__row">
+      <div class="article__heading"><span class="section__number">(05)</span><h2>Родченко-фотограф</h2></div>
+    </section>
+    <section class="article__row">
+      <div class="article__content"><p>В фотографии он развивал конструктивистское мышление: необычные ракурсы и диагонали превращали привычные предметы в динамичные пространственные построения.</p></div>
+    </section>
+
+    <section class="article__row">
+      <div class="article__heading"><span class="section__number">(06)</span><h2>Родченко и соцреализм</h2></div>
+    </section>
+    <section class="article__row">
+      <div class="article__content"><p>В 1930-е художник оказался под политическим давлением. Его язык менялся вместе с эпохой, но работа с ракурсами и линиями оставалась важной частью снимков.</p></div>
+    </section>
+
+    <section class="article__row">
+      <div class="article__heading"><span class="section__number">(07)</span><h2>1940–50-е</h2></div>
+    </section>
+    <section class="article__row">
+      <div class="article__content"><p>В поздние годы Родченко меньше работал как прежде, обращался к театру и более живописной фотографии. После смерти его наследие продолжило открываться зрителям.</p></div>
+    </section>
+      </div>
+    </main>
+  </div>
+
+  <script src="./panel.js"></script>
+  <script src="./panel-lib/obyavlenie.js"></script>
+  <script src="./panel-lib/segment.js"></script>
+  <script src="./panel-lib/ugol.js"></script>
+  <script src="./panel-lib/skroll.js"></script>
+  <script>
+    'use strict';
+
+    // Ручки стенда: начальные значения повторяют прежний вид страницы.
+    var DEFAULTS = Object.assign({
+      headingSize: 18,
+      bodySize: 18,
+      bodyAlign: 'left',
+      headingColor: '#808080',
+      textColor: '#111111',
+      backgroundColor: '#ffffff',
+      headingField: 100,
+      headingTravel: 100,
+      headingZone: 70,
+      headingAxisDirection: 90,
+      bodyAxisDirection: 90,
+    }, StendSkroll.ZNACHENIYA);
+    var P = Object.assign({}, DEFAULTS);
+    try {
+      Object.assign(P, JSON.parse(localStorage.getItem('rodchenko-columns-panel') || '{}'));
+    } catch (error) {}
+
+    function applyPanelParams() {
+      var root = document.documentElement;
+      root.style.setProperty('--heading-size', P.headingSize + 'px');
+      root.style.setProperty('--body-size', P.bodySize + 'px');
+      root.style.setProperty('--body-align', P.bodyAlign);
+      root.style.setProperty('--heading-color', P.headingColor);
+      root.style.setProperty('--text-color', P.textColor);
+      root.style.setProperty('--page-color', P.backgroundColor);
+      root.style.setProperty('--heading-field', P.headingField + 'px');
+    }
+
+    applyPanelParams();
+
+    StendPanel.build({
+      storageKey: 'rodchenko-columns-panel',
+      params: P,
+      defaults: DEFAULTS,
+      zakon: [
+        ['h', 'Набор', { gde: ['Заголовок', 'Основной текст'] }],
+        ['g', 'Заголовки'],
+        ['headingSize', 'Кегль', 'кегль'],
+        ['headingField', 'Поле', 'поле'],
+        ['g', 'Основной текст'],
+        ['bodySize', 'Кегль', 'кегль'],
+        ['bodyAlign', 'Выключка', 'выключка'],
+        ['h', 'Цвет', { gde: null }],
+        ['g', 'Заголовки'],
+        ['headingColor', 'Краска', 'цвет'],
+        ['g', 'Основной текст'],
+        ['textColor', 'Краска', 'цвет'],
+        ['g', 'Фон'],
+        ['backgroundColor', 'Бумага', 'цвет'],
+        ['h', 'Оси у середины', { gde: ['Заголовок', 'Основной текст'] }],
+        ['g', 'Ход'],
+        ['headingTravel', 'Сила', 'сила'],
+        ['headingZone', 'Коридор', 'доля', { ot: 'экран' }],
+        ['h', 'Оси', { gde: ['Заголовок', 'Основной текст'] }],
+        ['g', 'Заголовки'],
+        ['headingAxisDirection', 'Направление', 'угол'],
+        ['g', 'Основной текст'],
+        ['bodyAxisDirection', 'Направление', 'угол'],
+      ].concat(StendSkroll.RUCHKI),
+      mesta: {
+        'Заголовок': '.article__heading',
+        'Основной текст': '.article__content',
+      },
+      desc: {
+        headingSize: 'Кегль номеров и заголовков в левой колонке.',
+        headingField: 'Пустое поле над и под каждым заголовком.',
+        bodySize: 'Кегль основного текста в правой колонке.',
+        bodyAlign: 'Выравнивание строк основного текста.',
+        headingColor: 'Краска номеров и заголовков.',
+        textColor: 'Краска основного текста.',
+        backgroundColor: 'Бумага всей страницы.',
+        headingTravel: 'Сила горизонтального хода обеих осей через середину окна.',
+        headingZone: 'Высота коридора вокруг середины окна, где обе оси движутся.',
+        headingAxisDirection: 'Направление движения заголовков при прокрутке.',
+        bodyAxisDirection: 'Направление движения основного текста при прокрутке.',
+      },
+      onChange: applyPanelParams,
+    });
+
+    // Кнопка оставляет текущий набор ручек как сохранённый вид этого стенда.
+    (function addSaveButton() {
+      var panelBody = document.querySelector('.st-panel .st-telo');
+      if (!panelBody) return;
+
+      var button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'st-reset st-save';
+      button.textContent = 'Сохранить настройки';
+      button.title = 'Сохранить текущие настройки в этом браузере.';
+
+      button.addEventListener('click', function () {
+        localStorage.setItem('rodchenko-columns-panel', JSON.stringify(P));
+        button.textContent = 'Сохранено';
+        window.setTimeout(function () {
+          button.textContent = 'Сохранить настройки';
+        }, 1500);
+      });
+
+      panelBody.appendChild(button);
+    })();
+
+    (function startContentLoop() {
+      var article = document.querySelector('.article');
+      var firstCycle = article.querySelector('.article__cycle');
+      var secondCycle = firstCycle.cloneNode(true);
+      var cycleHeight = 1;
+      var lastPosition = 0;
+
+      secondCycle.setAttribute('aria-hidden', 'true');
+      article.appendChild(secondCycle);
+
+      var headings = Array.prototype.map.call(
+        article.querySelectorAll('.article__heading'),
+        function (element) {
+          return { element: element, axisX: 0, axisY: 0, centerShift: 0 };
+        }
+      );
+      var bodyText = Array.prototype.map.call(
+        article.querySelectorAll('.article__content'),
+        function (element) {
+          return { element: element, axisX: 0, axisY: 0, centerShift: 0 };
+        }
+      );
+
+      function axisMove(angle, distance) {
+        var radians = angle * Math.PI / 180;
+        return {
+          // Ось по умолчанию смотрит вниз (90°), поэтому прокрутка ведёт
+          // контент вверх. При повороте оси меняется и траектория движения.
+          x: -Math.cos(radians) * distance,
+          y: -Math.sin(radians) * distance,
+        };
+      }
+
+      function placeContent(offset) {
+        var headingMove = axisMove(P.headingAxisDirection, offset);
+        var textMove = axisMove(P.bodyAxisDirection, offset);
+        var middle = innerHeight / 2;
+        var screenMiddle = innerWidth / 2;
+        var halfZone = Math.max(1, innerHeight * (P.headingZone / 100) / 2);
+        var strength = P.headingTravel / 100;
+
+        bodyText.forEach(function (text) {
+          text.axisX = textMove.x;
+          text.axisY = textMove.y;
+          text.centerShift = 0;
+          text.element.style.transform = 'translate3d(' + text.axisX + 'px, ' + text.axisY + 'px, 0)';
+        });
+
+        headings.forEach(function (heading) {
+          heading.axisX = headingMove.x;
+          heading.axisY = headingMove.y;
+          heading.centerShift = 0;
+          heading.element.style.transform = 'translate3d(' + heading.axisX + 'px, ' + heading.axisY + 'px, 0)';
+        });
+
+        headings.forEach(function (heading) {
+          var rect = heading.element.getBoundingClientRect();
+          var headingMiddle = rect.top + rect.height / 2;
+          // До входа в коридор заголовок остаётся на левой оси.
+          // После середины фаза не имеет потолка: он продолжает уходить вправо.
+          var phase = Math.max(-1, (middle - headingMiddle) / halfZone);
+          var originalMiddle = rect.left - heading.axisX + rect.width / 2;
+          var toMiddle = screenMiddle - originalMiddle;
+
+          // Фаза −1 оставляет заголовок слева, 0 ставит в центр,
+          // положительная фаза продолжает тот же ход без остановки.
+          heading.centerShift = toMiddle * (1 + phase) * strength;
+          heading.element.style.transform = 'translate3d(' + (heading.axisX + heading.centerShift) +
+            'px, ' + heading.axisY + 'px, 0)';
+        });
+
+        bodyText.forEach(function (text) {
+          var rect = text.element.getBoundingClientRect();
+          var textMiddle = rect.top + rect.height / 2;
+          var phase = Math.max(-1, (middle - textMiddle) / halfZone);
+          var originalMiddle = rect.left - text.axisX + rect.width / 2;
+          var toMiddle = screenMiddle - originalMiddle;
+
+          // Текст начинается справа, поэтому его ход зеркален заголовкам:
+          // на середине он в центре, после неё продолжает влево.
+          text.centerShift = toMiddle * (1 + phase) * strength;
+          text.element.style.transform = 'translate3d(' + (text.axisX + text.centerShift) +
+            'px, ' + text.axisY + 'px, 0)';
+        });
+      }
+
+      function measure() {
+        cycleHeight = Math.max(1, firstCycle.getBoundingClientRect().height);
+        move(lastPosition);
+      }
+
+      function move(position) {
+        var offset = ((position % cycleHeight) + cycleHeight) % cycleHeight;
+        article.style.transform = 'none';
+        placeContent(offset);
+      }
+
+      measure();
+      addEventListener('resize', measure);
+      if ('ResizeObserver' in window) new ResizeObserver(measure).observe(firstCycle);
+
+      var scroll = StendSkroll.pusk({
+        params: P,
+        koltso: true,
+        gde: function (event) { return !event.target.closest('.st-panel'); },
+        na: function (position) {
+          lastPosition = position;
+          move(position);
+        },
+      });
+
+      var firstHeading = firstCycle.querySelector('.article__heading');
+      var firstHeadingMiddle = firstHeading.offsetTop + firstHeading.offsetHeight / 2;
+      var startPosition = firstHeadingMiddle - innerHeight / 2;
+      scroll.postavit(startPosition);
+      lastPosition = startPosition;
+      move(startPosition);
+    })();
+  </script>
+</body>
+</html>
