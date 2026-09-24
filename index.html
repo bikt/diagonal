@@ -14,11 +14,10 @@
     На широком экране заголовки занимают левую колонку, а текст — правую.
     Каждый фрагмент получает отдельную строку, поэтому при сведении колонок
     содержание не накладывается друг на друга.
-    Прокрутка плавно ведёт ленту без предела: после последнего фрагмента
-    начинается точная копия первого.
-    Середина окна — управляющая позиция: заголовки и основной текст плавно
-    проходят через неё из своих колонок к противоположному краю. Направление каждой из двух осей
-    задаётся отдельно: прокрутка ведёт каждый слой вдоль его оси.
+    Прокрутка плавно ведёт ленту от первого фрагмента к последнему.
+    Заголовки и основной текст движутся вдоль своих осей. Направление каждой
+    оси задаётся отдельно и меняет вектор дальнейшего скольжения, не переставляя
+    контент в момент поворота ручки.
   -->
   <style>
     :root {
@@ -198,8 +197,6 @@
       textColor: '#111111',
       backgroundColor: '#ffffff',
       headingField: 100,
-      headingTravel: 100,
-      headingZone: 70,
       headingAxisDirection: 90,
       bodyAxisDirection: 90,
     }, StendSkroll.ZNACHENIYA);
@@ -207,6 +204,7 @@
     try {
       Object.assign(P, JSON.parse(localStorage.getItem('rodchenko-columns-panel') || '{}'));
     } catch (error) {}
+    var refreshMotion = function () {};
 
     function applyPanelParams() {
       var root = document.documentElement;
@@ -217,6 +215,7 @@
       root.style.setProperty('--text-color', P.textColor);
       root.style.setProperty('--page-color', P.backgroundColor);
       root.style.setProperty('--heading-field', P.headingField + 'px');
+      refreshMotion();
     }
 
     applyPanelParams();
@@ -240,15 +239,11 @@
         ['textColor', 'Краска', 'цвет'],
         ['g', 'Фон'],
         ['backgroundColor', 'Бумага', 'цвет'],
-        ['h', 'Оси у середины', { gde: ['Заголовок', 'Основной текст'] }],
-        ['g', 'Ход'],
-        ['headingTravel', 'Сила', 'сила'],
-        ['headingZone', 'Коридор', 'доля', { ot: 'экран' }],
         ['h', 'Оси', { gde: ['Заголовок', 'Основной текст'] }],
         ['g', 'Заголовки'],
-        ['headingAxisDirection', 'Направление', 'угол'],
+        ['headingAxisDirection', 'Направление', 'зазор', { ot0: 0, do: 360, shag: 1, edinica: '°' }],
         ['g', 'Основной текст'],
-        ['bodyAxisDirection', 'Направление', 'угол'],
+        ['bodyAxisDirection', 'Направление', 'зазор', { ot0: 0, do: 360, shag: 1, edinica: '°' }],
       ].concat(StendSkroll.RUCHKI),
       mesta: {
         'Заголовок': '.article__heading',
@@ -262,10 +257,8 @@
         headingColor: 'Краска номеров и заголовков.',
         textColor: 'Краска основного текста.',
         backgroundColor: 'Бумага всей страницы.',
-        headingTravel: 'Сила горизонтального хода обеих осей через середину окна.',
-        headingZone: 'Высота коридора вокруг середины окна, где обе оси движутся.',
-        headingAxisDirection: 'Направление движения заголовков при прокрутке.',
-        bodyAxisDirection: 'Направление движения основного текста при прокрутке.',
+        headingAxisDirection: 'Направление скольжения заголовков: 90° — вверх, 0° — влево.',
+        bodyAxisDirection: 'Направление скольжения основного текста: 90° — вверх, 0° — влево.',
       },
       onChange: applyPanelParams,
     });
@@ -295,25 +288,22 @@
     (function startContentLoop() {
       var article = document.querySelector('.article');
       var firstCycle = article.querySelector('.article__cycle');
-      var secondCycle = firstCycle.cloneNode(true);
       var cycleHeight = 1;
       var lastPosition = 0;
-
-      secondCycle.setAttribute('aria-hidden', 'true');
-      article.appendChild(secondCycle);
-
       var headings = Array.prototype.map.call(
         article.querySelectorAll('.article__heading'),
         function (element) {
-          return { element: element, axisX: 0, axisY: 0, centerShift: 0 };
+          return { element: element };
         }
       );
       var bodyText = Array.prototype.map.call(
         article.querySelectorAll('.article__content'),
         function (element) {
-          return { element: element, axisX: 0, axisY: 0, centerShift: 0 };
+          return { element: element };
         }
       );
+      var headingAxis = { records: headings };
+      var bodyAxis = { records: bodyText };
 
       function axisMove(angle, distance) {
         var radians = angle * Math.PI / 180;
@@ -325,69 +315,54 @@
         };
       }
 
-      function placeContent(offset) {
-        var headingMove = axisMove(P.headingAxisDirection, offset);
-        var textMove = axisMove(P.bodyAxisDirection, offset);
-        var middle = innerHeight / 2;
-        var screenMiddle = innerWidth / 2;
-        var halfZone = Math.max(1, innerHeight * (P.headingZone / 100) / 2);
-        var strength = P.headingTravel / 100;
-
-        bodyText.forEach(function (text) {
-          text.axisX = textMove.x;
-          text.axisY = textMove.y;
-          text.centerShift = 0;
-          text.element.style.transform = 'translate3d(' + text.axisX + 'px, ' + text.axisY + 'px, 0)';
+      function measureAxis(axis) {
+        axis.records.forEach(function (record) {
+          record.element.style.transform = 'none';
         });
-
-        headings.forEach(function (heading) {
-          heading.axisX = headingMove.x;
-          heading.axisY = headingMove.y;
-          heading.centerShift = 0;
-          heading.element.style.transform = 'translate3d(' + heading.axisX + 'px, ' + heading.axisY + 'px, 0)';
-        });
-
-        headings.forEach(function (heading) {
-          var rect = heading.element.getBoundingClientRect();
-          var headingMiddle = rect.top + rect.height / 2;
-          // До входа в коридор заголовок остаётся на левой оси.
-          // После середины фаза не имеет потолка: он продолжает уходить вправо.
-          var phase = Math.max(-1, (middle - headingMiddle) / halfZone);
-          var originalMiddle = rect.left - heading.axisX + rect.width / 2;
-          var toMiddle = screenMiddle - originalMiddle;
-
-          // Фаза −1 оставляет заголовок слева, 0 ставит в центр,
-          // положительная фаза продолжает тот же ход без остановки.
-          heading.centerShift = toMiddle * (1 + phase) * strength;
-          heading.element.style.transform = 'translate3d(' + (heading.axisX + heading.centerShift) +
-            'px, ' + heading.axisY + 'px, 0)';
-        });
-
-        bodyText.forEach(function (text) {
-          var rect = text.element.getBoundingClientRect();
-          var textMiddle = rect.top + rect.height / 2;
-          var phase = Math.max(-1, (middle - textMiddle) / halfZone);
-          var originalMiddle = rect.left - text.axisX + rect.width / 2;
-          var toMiddle = screenMiddle - originalMiddle;
-
-          // Текст начинается справа, поэтому его ход зеркален заголовкам:
-          // на середине он в центре, после неё продолжает влево.
-          text.centerShift = toMiddle * (1 + phase) * strength;
-          text.element.style.transform = 'translate3d(' + (text.axisX + text.centerShift) +
-            'px, ' + text.axisY + 'px, 0)';
+        var first = axis.records[0].element.getBoundingClientRect();
+        axis.originX = first.left + first.width / 2;
+        axis.originY = first.top + first.height / 2;
+        axis.records.forEach(function (record) {
+          var rect = record.element.getBoundingClientRect();
+          record.baseX = rect.left + rect.width / 2;
+          record.baseY = rect.top + rect.height / 2;
+          // В вертикальном исходном виде этот путь возвращает фрагмент
+          // на его собственное место. При повороте он становится расстоянием
+          // фрагмента от начала его траектории.
+          record.flow = -(record.baseY - axis.originY);
         });
       }
 
+      function placeAxis(axis, angle, offset) {
+        var unit = axisMove(angle, 1);
+        axis.records.forEach(function (record) {
+          var path = record.flow + offset;
+          var x = axis.originX + unit.x * path - record.baseX;
+          var y = axis.originY + unit.y * path - record.baseY;
+          record.element.style.transform = 'translate3d(' + x + 'px, ' + y + 'px, 0)';
+        });
+      }
+
+      function placeContent(offset) {
+        placeAxis(headingAxis, P.headingAxisDirection, offset);
+        placeAxis(bodyAxis, P.bodyAxisDirection, offset);
+      }
+
       function measure() {
-        cycleHeight = Math.max(1, firstCycle.getBoundingClientRect().height);
+        article.style.transform = 'none';
+        measureAxis(headingAxis);
+        measureAxis(bodyAxis);
+        cycleHeight = Math.max(1, firstCycle.offsetHeight);
         move(lastPosition);
       }
 
       function move(position) {
-        var offset = ((position % cycleHeight) + cycleHeight) % cycleHeight;
+        var offset = position;
         article.style.transform = 'none';
         placeContent(offset);
       }
+
+      refreshMotion = function () { move(lastPosition); };
 
       measure();
       addEventListener('resize', measure);
@@ -395,7 +370,8 @@
 
       var scroll = StendSkroll.pusk({
         params: P,
-        koltso: true,
+        koltso: false,
+        predel: function () { return Math.max(0, firstCycle.offsetHeight - innerHeight); },
         gde: function (event) { return !event.target.closest('.st-panel'); },
         na: function (position) {
           lastPosition = position;
@@ -403,12 +379,9 @@
         },
       });
 
-      var firstHeading = firstCycle.querySelector('.article__heading');
-      var firstHeadingMiddle = firstHeading.offsetTop + firstHeading.offsetHeight / 2;
-      var startPosition = firstHeadingMiddle - innerHeight / 2;
-      scroll.postavit(startPosition);
-      lastPosition = startPosition;
-      move(startPosition);
+      scroll.postavit(0);
+      lastPosition = 0;
+      move(0);
     })();
   </script>
 </body>
