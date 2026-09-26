@@ -5,3 +5,5 @@ Thumbs.db
 .env*
 *.log
 .playwright-cli/
+
+.vercel
