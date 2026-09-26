@@ -5,10 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Эволюция сеток</title>
   <link rel="stylesheet" href="./panel.css">
-  <!-- Закон: страница смотрит на ширину окна и длину текста. Одна колонка остаётся в читательском коридоре: на узком экране занимает почти всю ширину, на широком — не становится длиннее. -->
+  <!-- Закон: страница смотрит на ширину окна, порядок фрагментов и кривые двух осей. Общая вертикальная последовательность сохраняется, а кривые меняют только горизонтальное положение содержимого в его резервной строке. -->
   <style>
     :root { --page: #fff; --ink: #171717; --signal-ink: #171717; --muted: #6d6d6d; --rule: #dedede; }
     * { box-sizing: border-box; }
+    html, body { overflow-x: clip; }
     body { margin: 0; background: var(--page); color: var(--ink); font-family: Inter, Arial, sans-serif; font-size: clamp(16px, 1.1vw, 19px); line-height: 1.48; }
     main { width: min(100% - clamp(32px, 8vw, 160px), 760px); margin: 0 auto; padding: clamp(48px, 9vw, 144px) 0; }
     h1 { max-width: none; margin: 0; font-size: inherit; line-height: inherit; letter-spacing: inherit; font-weight: inherit; }
@@ -29,7 +30,7 @@
     .axis-body { grid-column: 1; text-align: var(--body-align, left); }
     .axis-signal { grid-column: 2; color: var(--signal-ink); }
     .axis-signal .number { color: var(--signal-ink); }
-    .axis-signal > * { will-change: transform; }
+    .axis-signal > *, .axis-body > * { transform: translate3d(var(--trajectory-x, 0px), 0, 0); will-change: transform; }
     .st-save-settings { width: calc(100% - 24px); margin: 12px; padding: 9px 10px; border: 0; border-radius: 7px; background: var(--st-accent, #171717); color: #fff; font: 12px/1 Inter, Arial, sans-serif; cursor: pointer; }
     .st-save-settings:active { transform: translateY(1px); }
     .axis-signal .number { margin: 0; }
@@ -141,15 +142,27 @@
   <script src="./panel.js"></script>
   <script src="./panel-lib/obyavlenie.js"></script>
   <script src="./panel-lib/segment.js"></script>
+  <script src="./panel-lib/uzly.js"></script>
+  <script src="./panel-lib/traektoriya.js"></script>
   <script>
     'use strict';
     const DEFAULTS = {
-      nomeraPut: 900,
-      nomeraSila: 100,
+      bodyPath: 900,
+      bodyStrength: 100,
+      signalPath: 900,
+      signalStrength: 100,
       ink: '#171717',
       bg: '#ffffff',
       signalInk: '#171717',
-      bodyAlign: 'left'
+      bodyAlign: 'left',
+      bodyTrajectory: {
+        uzly: [{ x: 0, y: 0, r: 0.5 }, { x: 0.5, y: 0.5, r: 0.5 }, { x: 1, y: 1, r: 0.5 }],
+        zamknut: false
+      },
+      signalTrajectory: {
+        uzly: [{ x: 0, y: 1, r: 0.5 }, { x: 0.5, y: 0.5, r: 0.5 }, { x: 1, y: 0, r: 0.5 }],
+        zamknut: false
+      }
     };
     const P = Object.assign({}, DEFAULTS);
     try { Object.assign(P, JSON.parse(localStorage.getItem('horizontal-longread-params') || '{}')); } catch (error) {}
@@ -169,28 +182,60 @@
       twoAxes.appendChild(row);
     });
 
-    function updateNumberAxis() {
-      const start = window.innerHeight * 0.6;
-      const midpoint = 0.5;
+    function updateTrajectories() {
+      const anchor = window.innerHeight * 0.72;
       document.querySelectorAll('.axis-row').forEach((row) => {
-        const signal = row.querySelector('.axis-signal');
         const body = row.querySelector('.axis-body');
-        const item = signal.firstElementChild;
-        if (!item) return;
-
-        const signalLeft = signal.getBoundingClientRect().left;
-        const bodyLeft = body.getBoundingClientRect().left;
-        const distanceToSlot = signalLeft - bodyLeft;
-        const progress = Math.max(0, Math.min(1, (start - signal.getBoundingClientRect().top) / P.nomeraPut));
-        const entering = Math.min(1, progress / midpoint);
-        const leaving = Math.max(0, (progress - midpoint) / (1 - midpoint));
-        const shift = -distanceToSlot * (entering + leaving * P.nomeraSila / 100);
-        item.style.transform = `translate3d(${shift}px, 0, 0)`;
+        const signal = row.querySelector('.axis-signal');
+        const span = Math.abs(signal.getBoundingClientRect().left - body.getBoundingClientRect().left);
+        const bodyItem = body.firstElementChild;
+        const signalItem = signal.firstElementChild;
+        const bodyProgress = Math.max(0, Math.min(1, (anchor - body.getBoundingClientRect().top) / Math.max(1, P.bodyPath)));
+        const signalProgress = Math.max(0, Math.min(1, (anchor - signal.getBoundingClientRect().top) / Math.max(1, P.signalPath)));
+        const bodyPoint = pointAtScroll(P.bodyTrajectory, bodyProgress);
+        const signalPoint = pointAtScroll(P.signalTrajectory, signalProgress);
+        let bodyShift = (bodyPoint.x - 0.5) * span * P.bodyStrength / 100;
+        let signalShift = (signalPoint.x - 0.5) * span * P.signalStrength / 100;
+        // Траектории независимы, но строки остаются общей системой: между
+        // осями всегда сохраняется минимум 36% исходного горизонтального шага.
+        const minGap = span * 0.36;
+        const currentGap = span + signalShift - bodyShift;
+        if (currentGap < minGap) {
+          const correction = (minGap - currentGap) / 2;
+          bodyShift -= correction;
+          signalShift += correction;
+        }
+        if (bodyItem) bodyItem.style.setProperty('--trajectory-x', `${bodyShift}px`);
+        if (signalItem) signalItem.style.setProperty('--trajectory-x', `${signalShift}px`);
       });
     }
-    window.addEventListener('scroll', updateNumberAxis, { passive: true });
-    window.addEventListener('resize', updateNumberAxis);
-    requestAnimationFrame(updateNumberAxis);
+    // На редакторе кривой вертикаль — время скролла, горизонталь — положение
+    // фрагмента. Находим точку траектории на текущей высоте окна.
+    function pointAtScroll(trajectory, progress) {
+      let closest = StendPanel.put.tochka(trajectory, 0, 1, 1);
+      let distance = Math.abs(closest.y - progress);
+      const samples = 48;
+      for (let index = 1; index <= samples; index += 1) {
+        const point = StendPanel.put.tochka(trajectory, index / samples, 1, 1);
+        const nextDistance = Math.abs(point.y - progress);
+        if (nextDistance < distance) {
+          closest = point;
+          distance = nextDistance;
+        }
+      }
+      return closest;
+    }
+    let trajectoryFrame;
+    function scheduleTrajectories() {
+      if (trajectoryFrame) return;
+      trajectoryFrame = requestAnimationFrame(() => {
+        trajectoryFrame = null;
+        updateTrajectories();
+      });
+    }
+    window.addEventListener('scroll', scheduleTrajectories, { passive: true });
+    window.addEventListener('resize', updateTrajectories);
+    requestAnimationFrame(updateTrajectories);
 
     function applyAppearance() {
       const root = document.documentElement.style;
@@ -201,14 +246,8 @@
     }
     applyAppearance();
 
-    const panel = StendPanel.build({
-      storageKey: 'horizontal-longread-params',
-      params: P,
-      defaults: DEFAULTS,
-      zakon: [
-        ['h', 'Ось номеров', { gde: 'Ось номеров' }],
-        ['nomeraPut', 'Путь', 'путь'],
-        ['nomeraSila', 'Сила', 'сила'],
+    const MESTA = { 'Ось текста': '.axis-body', 'Ось номеров': '.axis-signal' };
+    const ZAKON = [
         ['h', 'Основной текст'],
         ['ink', 'Краска', 'цвет'],
         ['bodyAlign', 'Выключка', 'выключка'],
@@ -216,13 +255,34 @@
         ['signalInk', 'Краска', 'цвет'],
         ['h', 'Страница'],
         ['bg', 'Фон', 'цвет']
-      ],
-      mesta: { 'Ось номеров': '.axis-signal' },
+    ];
+    const DEFS = StendPanel.izObyavleniya(ZAKON, MESTA);
+    DEFS.push(
+      ['h', 'Траектория осей'],
+      ['bodyTrajectory', 'Кривая текста: X — в сторону, Y — скролл', 'traektoriya', { mesto: '.two-axes' }],
+      ['bodyPath', 'Длина прохода текста, px', 200, 2000, 10],
+      ['bodyStrength', 'Сила текста, %', 0, 200, 1],
+      ['signalTrajectory', 'Кривая номеров: X — в сторону, Y — скролл', 'traektoriya', { mesto: '.two-axes' }],
+      ['signalPath', 'Длина прохода номеров, px', 200, 2000, 10],
+      ['signalStrength', 'Сила номеров, %', 0, 200, 1]
+    );
+
+    const panel = StendPanel.build({
+      storageKey: 'horizontal-longread-params',
+      params: P,
+      defaults: DEFAULTS,
+      zakon: ZAKON,
+      defs: DEFS,
+      mesta: MESTA,
       desc: {
-        nomeraPut: 'Вертикальная длина участка прокрутки, на котором элемент проходит свой путь.',
-        nomeraSila: 'Насколько далеко элемент продолжает двигаться после входа в пустой слот.'
+        bodyTrajectory: 'Вертикаль кривой — ход скролла, горизонталь — положение текста. Диагональ ↘ ведёт текст слева направо.',
+        bodyPath: 'Длина участка прокрутки, за который текст проходит свою кривую.',
+        bodyStrength: 'Амплитуда отклонения текста от вертикального потока.',
+        signalTrajectory: 'Вертикаль кривой — ход скролла, горизонталь — положение номеров, заголовков и тезисов. Зазор с текстом сохраняется автоматически.',
+        signalPath: 'Длина участка прокрутки, за который номера проходят свою кривую.',
+        signalStrength: 'Амплитуда отклонения номеров, заголовков и тезисов от вертикального потока.'
       },
-      onChange: function () { updateNumberAxis(); applyAppearance(); }
+      onChange: function () { updateTrajectories(); applyAppearance(); }
     });
 
     const saveSettings = document.createElement('button');
