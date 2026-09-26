@@ -25,7 +25,7 @@
        точно повторяет место элемента первой. */
     .text-axis { display: none; }
     .two-axes { width: min(100% - clamp(32px, 8vw, 160px), 1320px); margin: 0 auto; padding: clamp(48px, 9vw, 144px) 0; }
-    .axis-row { display: grid; grid-template-columns: minmax(0, 1.65fr) minmax(0, 1fr); column-gap: clamp(32px, 7vw, 150px); padding-block: clamp(10px, 1.3vw, 20px); }
+    .axis-row { display: grid; grid-template-columns: minmax(0, 1.65fr) minmax(0, 1fr); column-gap: clamp(32px, 7vw, 150px); padding-block: calc(10px + var(--paragraph-air, 0px)); }
     .axis-cell { min-width: 0; }
     .axis-body { grid-column: 1; text-align: var(--body-align, left); }
     .axis-signal { grid-column: 2; color: var(--signal-ink); }
@@ -151,25 +151,73 @@
       bodyStrength: 100,
       signalPath: 900,
       signalStrength: 100,
+      trajectoryAnchor: 45,
+      paragraphAir: 0,
       ink: '#171717',
-      bg: '#ffffff',
-      signalInk: '#171717',
-      bodyAlign: 'left',
+      bg: '#f5f5f5',
+      signalInk: '#b0b0b0',
+      bodyAlign: 'right',
       bodyTrajectory: {
         uzly: [{ x: 0, y: 0, r: 0.5 }, { x: 0.5, y: 0.5, r: 0.5 }, { x: 1, y: 1, r: 0.5 }],
         zamknut: false
       },
       signalTrajectory: {
-        uzly: [{ x: 0, y: 1, r: 0.5 }, { x: 0.5, y: 0.5, r: 0.5 }, { x: 1, y: 0, r: 0.5 }],
+        uzly: [{ x: 1, y: 0, r: 0.5 }, { x: 0, y: 0.5, r: 0.5 }, { x: -0.25, y: 1, r: 0.5 }],
         zamknut: false
       }
     };
     const P = Object.assign({}, DEFAULTS);
-    try { Object.assign(P, JSON.parse(localStorage.getItem('horizontal-longread-params') || '{}')); } catch (error) {}
+    let savedParams = {};
+    try { savedParams = JSON.parse(localStorage.getItem('horizontal-longread-params') || '{}'); Object.assign(P, savedParams); } catch (error) {}
+    // Новые стартовые цвета и выключка применяются один раз и не мешают
+    // последующим сохранённым настройкам пользователя.
+    if (savedParams.styleDefaultsVersion !== 3) {
+      P.bg = DEFAULTS.bg;
+      P.signalInk = DEFAULTS.signalInk;
+      P.bodyAlign = DEFAULTS.bodyAlign;
+      P.styleDefaultsVersion = 3;
+    }
+    if (savedParams.trajectoryAnchorVersion !== 4) {
+      P.trajectoryAnchor = DEFAULTS.trajectoryAnchor;
+      P.trajectoryAnchorVersion = 4;
+    }
+    if (savedParams.axisCoordinatesVersion !== 2) {
+      P.signalTrajectory = DEFAULTS.signalTrajectory;
+      P.axisCoordinatesVersion = 2;
+    }
 
     const sourceAxis = document.querySelector('.text-axis');
     const twoAxes = document.getElementById('two-axes');
-    sourceAxis.querySelectorAll('h1, h2, .number, blockquote, p').forEach((source) => {
+    const PARAGRAPH_LIMIT = 650;
+
+    function splitParagraph(source) {
+      if (!source.matches('p') || source.children.length || source.textContent.trim().length <= PARAGRAPH_LIMIT) return [source];
+      const sentences = source.textContent.trim().split(/(?<=[.!?…])\s+/);
+      const count = Math.min(3, Math.max(2, Math.ceil(source.textContent.trim().length / PARAGRAPH_LIMIT)));
+      const target = source.textContent.trim().length / count;
+      const parts = [];
+      let part = '';
+      let remaining = count;
+      sentences.forEach((sentence, index) => {
+        const withSentence = part ? `${part} ${sentence}` : sentence;
+        const sentencesLeft = sentences.length - index - 1;
+        if (part && withSentence.length > target && sentencesLeft >= remaining - 1) {
+          parts.push(part);
+          remaining -= 1;
+          part = sentence;
+        } else {
+          part = withSentence;
+        }
+      });
+      if (part) parts.push(part);
+      return parts.map((text) => {
+        const paragraph = source.cloneNode(false);
+        paragraph.textContent = text;
+        return paragraph;
+      });
+    }
+
+    Array.from(sourceAxis.querySelectorAll('h1, h2, .number, blockquote, p')).flatMap(splitParagraph).forEach((source) => {
       const row = document.createElement('article');
       const signal = document.createElement('div');
       const body = document.createElement('div');
@@ -183,28 +231,24 @@
     });
 
     function updateTrajectories() {
-      const anchor = window.innerHeight * 0.72;
+      const anchor = window.innerHeight * P.trajectoryAnchor / 100;
       document.querySelectorAll('.axis-row').forEach((row) => {
         const body = row.querySelector('.axis-body');
         const signal = row.querySelector('.axis-signal');
         const span = Math.abs(signal.getBoundingClientRect().left - body.getBoundingClientRect().left);
         const bodyItem = body.firstElementChild;
         const signalItem = signal.firstElementChild;
-        const bodyProgress = Math.max(0, Math.min(1, (anchor - body.getBoundingClientRect().top) / Math.max(1, P.bodyPath)));
-        const signalProgress = Math.max(0, Math.min(1, (anchor - signal.getBoundingClientRect().top) / Math.max(1, P.signalPath)));
+        const bodyRect = body.getBoundingClientRect();
+        const signalRect = signal.getBoundingClientRect();
+        const bodyProgress = Math.max(0, Math.min(1, 0.5 + (anchor - (bodyRect.top + bodyRect.height / 2)) / Math.max(1, P.bodyPath)));
+        const signalProgress = Math.max(0, Math.min(1, 0.5 + (anchor - (signalRect.top + signalRect.height / 2)) / Math.max(1, P.signalPath)));
         const bodyPoint = pointAtScroll(P.bodyTrajectory, bodyProgress);
         const signalPoint = pointAtScroll(P.signalTrajectory, signalProgress);
-        let bodyShift = (bodyPoint.x - 0.5) * span * P.bodyStrength / 100;
-        let signalShift = (signalPoint.x - 0.5) * span * P.signalStrength / 100;
-        // Траектории независимы, но строки остаются общей системой: между
-        // осями всегда сохраняется минимум 36% исходного горизонтального шага.
-        const minGap = span * 0.36;
-        const currentGap = span + signalShift - bodyShift;
-        if (currentGap < minGap) {
-          const correction = (minGap - currentGap) / 2;
-          bodyShift -= correction;
-          signalShift += correction;
-        }
+        // X — общая горизонтальная координата двух осей: 0 — ось текста,
+        // 1 — ось номеров. Поэтому номер с X=0 точно входит в пустую ячейку
+        // текстовой оси своей строки, а не останавливается между колонками.
+        const bodyShift = bodyPoint.x * span * P.bodyStrength / 100;
+        const signalShift = (signalPoint.x - 1) * span * P.signalStrength / 100;
         if (bodyItem) bodyItem.style.setProperty('--trajectory-x', `${bodyShift}px`);
         if (signalItem) signalItem.style.setProperty('--trajectory-x', `${signalShift}px`);
       });
@@ -243,6 +287,7 @@
       root.setProperty('--page', P.bg);
       root.setProperty('--signal-ink', P.signalInk);
       root.setProperty('--body-align', P.bodyAlign);
+      root.setProperty('--paragraph-air', `${P.paragraphAir}px`);
     }
     applyAppearance();
 
@@ -251,6 +296,7 @@
         ['h', 'Основной текст'],
         ['ink', 'Краска', 'цвет'],
         ['bodyAlign', 'Выключка', 'выключка'],
+        ['paragraphAir', 'Разрядка абзацев, px', 0, 100, 2],
         ['h', 'Ось номеров: текст'],
         ['signalInk', 'Краска', 'цвет'],
         ['h', 'Страница'],
@@ -259,6 +305,7 @@
     const DEFS = StendPanel.izObyavleniya(ZAKON, MESTA);
     DEFS.push(
       ['h', 'Траектория осей'],
+      ['trajectoryAnchor', 'Положение композиции, % экрана', 0, 90, 1],
       ['bodyTrajectory', 'Кривая текста: X — в сторону, Y — скролл', 'traektoriya', { mesto: '.two-axes' }],
       ['bodyPath', 'Длина прохода текста, px', 200, 2000, 10],
       ['bodyStrength', 'Сила текста, %', 0, 200, 1],
@@ -275,10 +322,12 @@
       defs: DEFS,
       mesta: MESTA,
       desc: {
-        bodyTrajectory: 'Вертикаль кривой — ход скролла, горизонталь — положение текста. Диагональ ↘ ведёт текст слева направо.',
+        trajectoryAnchor: 'Высота окна, в которой обе оси считывают середину своих траекторий. Большее значение сдвигает композицию вниз.',
+        bodyTrajectory: 'Вертикаль кривой — ход скролла. По горизонтали 0 — место оси текста, 1 — место оси номеров.',
         bodyPath: 'Длина участка прокрутки, за который текст проходит свою кривую.',
         bodyStrength: 'Амплитуда отклонения текста от вертикального потока.',
-        signalTrajectory: 'Вертикаль кривой — ход скролла, горизонталь — положение номеров, заголовков и тезисов. Зазор с текстом сохраняется автоматически.',
+        paragraphAir: 'Дополнительное пустое место вокруг каждой синхронизированной строки.',
+        signalTrajectory: 'Вертикаль кривой — ход скролла. По горизонтали 1 — место оси номеров, 0 — пустое место в оси текста, куда элемент входит в центре экрана.',
         signalPath: 'Длина участка прокрутки, за который номера проходят свою кривую.',
         signalStrength: 'Амплитуда отклонения номеров, заголовков и тезисов от вертикального потока.'
       },
