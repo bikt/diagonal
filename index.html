@@ -162,7 +162,7 @@
         zamknut: false
       },
       signalTrajectory: {
-        uzly: [{ x: 1, y: 0, r: 0.5 }, { x: 0, y: 0.5, r: 0.5 }, { x: -0.25, y: 1, r: 0.5 }],
+        uzly: [{ x: 1, y: 0, r: 0.5 }, { x: 0.634, y: 0.557, r: 0.5 }, { x: -0.25, y: 1, r: 0.5 }],
         zamknut: false
       }
     };
@@ -181,9 +181,9 @@
       P.trajectoryAnchor = DEFAULTS.trajectoryAnchor;
       P.trajectoryAnchorVersion = 4;
     }
-    if (savedParams.axisCoordinatesVersion !== 2) {
+    if (savedParams.axisCoordinatesVersion !== 3) {
       P.signalTrajectory = DEFAULTS.signalTrajectory;
-      P.axisCoordinatesVersion = 2;
+      P.axisCoordinatesVersion = 3;
     }
 
     const sourceAxis = document.querySelector('.text-axis');
