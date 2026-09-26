@@ -149,8 +149,6 @@
     const DEFAULTS = {
       bodyPath: 900,
       bodyStrength: 100,
-      signalPath: 900,
-      signalStrength: 100,
       trajectoryAnchor: 45,
       paragraphAir: 0,
       ink: '#171717',
@@ -162,7 +160,7 @@
         zamknut: false
       },
       signalTrajectory: {
-        uzly: [{ x: 1, y: 0, r: 0.5 }, { x: 0.634, y: 0.557, r: 0.5 }, { x: -0.25, y: 1, r: 0.5 }],
+        uzly: [{ x: 1, y: 0, r: 0.5 }, { x: 0.634, y: 0.557, r: 0.5 }, { x: 0, y: 1, r: 0.5 }],
         zamknut: false
       }
     };
@@ -181,9 +179,9 @@
       P.trajectoryAnchor = DEFAULTS.trajectoryAnchor;
       P.trajectoryAnchorVersion = 4;
     }
-    if (savedParams.axisCoordinatesVersion !== 3) {
+    if (savedParams.axisCoordinatesVersion !== 4) {
       P.signalTrajectory = DEFAULTS.signalTrajectory;
-      P.axisCoordinatesVersion = 3;
+      P.axisCoordinatesVersion = 4;
     }
 
     const sourceAxis = document.querySelector('.text-axis');
@@ -241,14 +239,14 @@
         const bodyRect = body.getBoundingClientRect();
         const signalRect = signal.getBoundingClientRect();
         const bodyProgress = Math.max(0, Math.min(1, 0.5 + (anchor - (bodyRect.top + bodyRect.height / 2)) / Math.max(1, P.bodyPath)));
-        const signalProgress = Math.max(0, Math.min(1, 0.5 + (anchor - (signalRect.top + signalRect.height / 2)) / Math.max(1, P.signalPath)));
+        const signalProgress = Math.max(0, Math.min(1, 0.5 + (anchor - (signalRect.top + signalRect.height / 2)) / Math.max(1, P.bodyPath)));
         const bodyPoint = pointAtScroll(P.bodyTrajectory, bodyProgress);
         const signalPoint = pointAtScroll(P.signalTrajectory, signalProgress);
         // X — общая горизонтальная координата двух осей: 0 — ось текста,
         // 1 — ось номеров. Поэтому номер с X=0 точно входит в пустую ячейку
         // текстовой оси своей строки, а не останавливается между колонками.
         const bodyShift = bodyPoint.x * span * P.bodyStrength / 100;
-        const signalShift = (signalPoint.x - 1) * span * P.signalStrength / 100;
+        const signalShift = (signalPoint.x - 1) * span * P.bodyStrength / 100;
         if (bodyItem) bodyItem.style.setProperty('--trajectory-x', `${bodyShift}px`);
         if (signalItem) signalItem.style.setProperty('--trajectory-x', `${signalShift}px`);
       });
@@ -256,16 +254,25 @@
     // На редакторе кривой вертикаль — время скролла, горизонталь — положение
     // фрагмента. Находим точку траектории на текущей высоте окна.
     function pointAtScroll(trajectory, progress) {
-      let closest = StendPanel.put.tochka(trajectory, 0, 1, 1);
-      let distance = Math.abs(closest.y - progress);
-      const samples = 48;
+      const samples = 96;
+      let previous = StendPanel.put.tochka(trajectory, 0, 1, 1);
+      let closest = previous;
+      let distance = Math.abs(previous.y - progress);
       for (let index = 1; index <= samples; index += 1) {
-        const point = StendPanel.put.tochka(trajectory, index / samples, 1, 1);
+        const t = index / samples;
+        const point = StendPanel.put.tochka(trajectory, t, 1, 1);
+        const delta = point.y - previous.y;
+        if (delta && (progress - previous.y) * (progress - point.y) <= 0) {
+          const local = (progress - previous.y) / delta;
+          const exactT = (index - 1 + local) / samples;
+          return StendPanel.put.tochka(trajectory, exactT, 1, 1);
+        }
         const nextDistance = Math.abs(point.y - progress);
         if (nextDistance < distance) {
           closest = point;
           distance = nextDistance;
         }
+        previous = point;
       }
       return closest;
     }
@@ -307,11 +314,10 @@
       ['h', 'Траектория осей'],
       ['trajectoryAnchor', 'Положение композиции, % экрана', 0, 90, 1],
       ['bodyTrajectory', 'Кривая текста: X — в сторону, Y — скролл', 'traektoriya', { mesto: '.two-axes' }],
-      ['bodyPath', 'Длина прохода текста, px', 200, 2000, 10],
-      ['bodyStrength', 'Сила текста, %', 0, 200, 1],
+      ['bodyPath', 'Длина прохода обеих осей, px', 200, 2000, 10],
+      ['bodyStrength', 'Сила обеих осей, %', 0, 200, 1],
+      ['h', 'Вторая ось: собственная кривая'],
       ['signalTrajectory', 'Кривая номеров: X — в сторону, Y — скролл', 'traektoriya', { mesto: '.two-axes' }],
-      ['signalPath', 'Длина прохода номеров, px', 200, 2000, 10],
-      ['signalStrength', 'Сила номеров, %', 0, 200, 1]
     );
 
     const panel = StendPanel.build({
@@ -324,12 +330,10 @@
       desc: {
         trajectoryAnchor: 'Высота окна, в которой обе оси считывают середину своих траекторий. Большее значение сдвигает композицию вниз.',
         bodyTrajectory: 'Вертикаль кривой — ход скролла. По горизонтали 0 — место оси текста, 1 — место оси номеров.',
-        bodyPath: 'Длина участка прокрутки, за который текст проходит свою кривую.',
-        bodyStrength: 'Амплитуда отклонения текста от вертикального потока.',
+        bodyPath: 'Длина участка прокрутки, за который обе оси проходят свои собственные кривые.',
+        bodyStrength: 'Общая амплитуда движения обеих осей по их кривым.',
         paragraphAir: 'Дополнительное пустое место вокруг каждой синхронизированной строки.',
-        signalTrajectory: 'Вертикаль кривой — ход скролла. По горизонтали 1 — место оси номеров, 0 — пустое место в оси текста, куда элемент входит в центре экрана.',
-        signalPath: 'Длина участка прокрутки, за который номера проходят свою кривую.',
-        signalStrength: 'Амплитуда отклонения номеров, заголовков и тезисов от вертикального потока.'
+        signalTrajectory: 'Вторая ось буквально проходит эту самостоятельную кривую. Вертикаль — ход скролла; по горизонтали 1 — её исходное место, 0 — пустое место в оси текста.'
       },
       onChange: function () { updateTrajectories(); applyAppearance(); }
     });
