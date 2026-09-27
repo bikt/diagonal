@@ -7,7 +7,7 @@
   <link rel="stylesheet" href="./panel.css">
   <!-- Закон: страница смотрит на ширину окна, порядок фрагментов и кривые двух осей. Общая вертикальная последовательность сохраняется, а кривые меняют только горизонтальное положение содержимого в его резервной строке. -->
   <style>
-    :root { --page: #fff; --ink: #171717; --signal-ink: #171717; --muted: #6d6d6d; --rule: #dedede; }
+    :root { --page: #1c1c1c; --ink: #cdcdcd; --signal-ink: #4c4c4c; --muted: #6d6d6d; --rule: #dedede; }
     * { box-sizing: border-box; }
     html, body { overflow-x: clip; }
     body { margin: 0; background: var(--page); color: var(--ink); font-family: Inter, Arial, sans-serif; font-size: clamp(16px, 1.1vw, 19px); line-height: 1.48; }
@@ -27,8 +27,8 @@
     .two-axes { width: min(100% - clamp(32px, 8vw, 160px), 1320px); margin: 0 auto; padding: clamp(48px, 9vw, 144px) 0; }
     .axis-row { display: grid; grid-template-columns: minmax(0, 1.65fr) minmax(0, 1fr); column-gap: clamp(32px, 7vw, 150px); padding-block: calc(10px + var(--paragraph-air, 0px)); }
     .axis-cell { min-width: 0; }
-    .axis-body { grid-column: 1; text-align: var(--body-align, left); }
-    .axis-signal { grid-column: 2; color: var(--signal-ink); }
+    .axis-body { grid-column: 1; text-align: var(--body-align, left); font-size: var(--body-size, inherit); line-height: var(--body-line-height, inherit); }
+    .axis-signal { grid-column: 2; color: var(--signal-ink); font-size: var(--signal-size, inherit); line-height: var(--signal-line-height, inherit); }
     .axis-signal .number { color: var(--signal-ink); }
     .axis-signal > *, .axis-body > * { transform: translate3d(var(--trajectory-x, 0px), 0, 0); will-change: transform; }
     .st-save-settings { width: calc(100% - 24px); margin: 12px; padding: 9px 10px; border: 0; border-radius: 7px; background: var(--st-accent, #171717); color: #fff; font: 12px/1 Inter, Arial, sans-serif; cursor: pointer; }
@@ -151,16 +151,20 @@
       bodyStrength: 100,
       trajectoryAnchor: 45,
       paragraphAir: 0,
-      ink: '#171717',
-      bg: '#f5f5f5',
-      signalInk: '#b0b0b0',
+      bodyFontSize: 14,
+      bodyLineHeight: 1.48,
+      signalFontSize: 14,
+      signalLineHeight: 1.48,
+      ink: '#cdcdcd',
+      bg: '#1c1c1c',
+      signalInk: '#4c4c4c',
       bodyAlign: 'right',
       bodyTrajectory: {
         uzly: [{ x: 0, y: 0, r: 0.5 }, { x: 0.5, y: 0.5, r: 0.5 }, { x: 1, y: 1, r: 0.5 }],
         zamknut: false
       },
       signalTrajectory: {
-        uzly: [{ x: 1, y: 0, r: 0.5 }, { x: 0.634, y: 0.557, r: 0.5 }, { x: 0, y: 1, r: 0.5 }],
+        uzly: [{ x: 1, y: 0, r: 0.5 }, { x: 0.614, y: 0.453, r: 0.5 }, { x: 0, y: 1, r: 0.5 }],
         zamknut: false
       }
     };
@@ -169,19 +173,19 @@
     try { savedParams = JSON.parse(localStorage.getItem('horizontal-longread-params') || '{}'); Object.assign(P, savedParams); } catch (error) {}
     // Новые стартовые цвета и выключка применяются один раз и не мешают
     // последующим сохранённым настройкам пользователя.
-    if (savedParams.styleDefaultsVersion !== 3) {
+    if (savedParams.styleDefaultsVersion !== 4) {
       P.bg = DEFAULTS.bg;
       P.signalInk = DEFAULTS.signalInk;
       P.bodyAlign = DEFAULTS.bodyAlign;
-      P.styleDefaultsVersion = 3;
+      P.styleDefaultsVersion = 4;
     }
     if (savedParams.trajectoryAnchorVersion !== 4) {
       P.trajectoryAnchor = DEFAULTS.trajectoryAnchor;
       P.trajectoryAnchorVersion = 4;
     }
-    if (savedParams.axisCoordinatesVersion !== 4) {
+    if (savedParams.axisCoordinatesVersion !== 5) {
       P.signalTrajectory = DEFAULTS.signalTrajectory;
-      P.axisCoordinatesVersion = 4;
+      P.axisCoordinatesVersion = 5;
     }
 
     const sourceAxis = document.querySelector('.text-axis');
@@ -295,6 +299,10 @@
       root.setProperty('--signal-ink', P.signalInk);
       root.setProperty('--body-align', P.bodyAlign);
       root.setProperty('--paragraph-air', `${P.paragraphAir}px`);
+      root.setProperty('--body-size', `${P.bodyFontSize}px`);
+      root.setProperty('--body-line-height', P.bodyLineHeight);
+      root.setProperty('--signal-size', `${P.signalFontSize}px`);
+      root.setProperty('--signal-line-height', P.signalLineHeight);
     }
     applyAppearance();
 
@@ -303,9 +311,13 @@
         ['h', 'Основной текст'],
         ['ink', 'Краска', 'цвет'],
         ['bodyAlign', 'Выключка', 'выключка'],
+        ['bodyFontSize', 'Кегль', 'кегль', { ot0: 12, do: 36 }],
+        ['bodyLineHeight', 'Межстрочка', 'доля', { ot: 'кегль', kak: '×', ot0: 1, do: 2.5 }],
         ['paragraphAir', 'Разрядка абзацев, px', 0, 100, 2],
         ['h', 'Ось номеров: текст'],
         ['signalInk', 'Краска', 'цвет'],
+        ['signalFontSize', 'Кегль', 'кегль', { ot0: 12, do: 36 }],
+        ['signalLineHeight', 'Межстрочка', 'доля', { ot: 'кегль', kak: '×', ot0: 1, do: 2.5 }],
         ['h', 'Страница'],
         ['bg', 'Фон', 'цвет']
     ];
@@ -332,8 +344,12 @@
         bodyTrajectory: 'Вертикаль кривой — ход скролла. По горизонтали 0 — место оси текста, 1 — место оси номеров.',
         bodyPath: 'Длина участка прокрутки, за который обе оси проходят свои собственные кривые.',
         bodyStrength: 'Общая амплитуда движения обеих осей по их кривым.',
+        bodyFontSize: 'Размер букв основного текста.',
+        bodyLineHeight: 'Расстояние между строками основного текста.',
         paragraphAir: 'Дополнительное пустое место вокруг каждой синхронизированной строки.',
-        signalTrajectory: 'Вторая ось буквально проходит эту самостоятельную кривую. Вертикаль — ход скролла; по горизонтали 1 — её исходное место, 0 — пустое место в оси текста.'
+        signalTrajectory: 'Вторая ось буквально проходит эту самостоятельную кривую. Вертикаль — ход скролла; по горизонтали 1 — её исходное место, 0 — пустое место в оси текста.',
+        signalFontSize: 'Размер букв второй оси.',
+        signalLineHeight: 'Расстояние между строками второй оси.'
       },
       onChange: function () { updateTrajectories(); applyAppearance(); }
     });
