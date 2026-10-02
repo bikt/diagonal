@@ -46,6 +46,7 @@
     .axis-signal { text-align: var(--signal-align, left); }
     .axis-heading { grid-column: 3; color: var(--heading-ink); font-family: var(--heading-font), sans-serif; font-weight: var(--heading-weight); font-size: var(--heading-size); line-height: var(--heading-line-height); text-align: var(--heading-align); text-transform: var(--heading-case); }
     .axis-heading > * { margin: 0; width: var(--heading-text-width, 100%); }
+    .plastic-line { display: block; white-space: nowrap; transform: translate3d(var(--line-x, 0px), 0, 0); will-change: transform; }
     @media (max-width: 720px) {
       .axis-row { column-gap: 24px; }
     }
@@ -170,6 +171,7 @@
       "signalWeight": "700",
       "signalCase": "none",
       "bodyLineHeight": 1.16,
+      "bodyPlasticity": 100,
       "signalFontSize": 60,
       "signalLineHeight": 1.48,
       "signalAlign": "left",
@@ -328,6 +330,57 @@
       twoAxes.appendChild(row);
     });
 
+    // Переносы берём из реального набора браузера, не назначаем вручную.
+    // Сохраняем исходную разметку, чтобы пересобрать строки после смены шрифта/ширины.
+    const bodyOriginals = new WeakMap();
+    function rebuildBodyLines() {
+      document.querySelectorAll('.axis-body > *').forEach(item => {
+        if (!bodyOriginals.has(item)) bodyOriginals.set(item, Array.from(item.childNodes, node => node.cloneNode(true)));
+        item.replaceChildren(...bodyOriginals.get(item).map(node => node.cloneNode(true)));
+        item.style.height = '';
+        item.classList.remove('has-plastic-lines');
+        if (!P.bodyPlasticity) return;
+        const originalHeight = item.getBoundingClientRect().height;
+        const lineHeight = parseFloat(getComputedStyle(item).lineHeight);
+        const walker = document.createTreeWalker(item, NodeFilter.SHOW_TEXT);
+        const lines = [];
+        const measure = document.createRange();
+        let node;
+        while ((node = walker.nextNode())) {
+          for (let offset = 0; offset < node.length; offset += 1) {
+            if (/\s/.test(node.data[offset])) continue;
+            measure.setStart(node, offset);
+            measure.setEnd(node, offset + 1);
+            const rect = measure.getBoundingClientRect();
+            if (!rect.width || !rect.height) continue;
+            const center = rect.top + rect.height / 2;
+            let line = lines[lines.length - 1];
+            if (!line || Math.abs(center - line.center) > lineHeight * 0.45) {
+              line = { center, startNode: node, start: offset };
+              lines.push(line);
+            }
+            line.endNode = node;
+            line.end = offset + 1;
+          }
+        }
+        const fragments = lines.map(line => {
+          const range = document.createRange();
+          range.setStart(line.startNode, line.start);
+          range.setEnd(line.endNode, line.end);
+          const span = document.createElement('span');
+          span.className = 'plastic-line';
+          span.style.height = `${lineHeight}px`;
+          span.appendChild(range.cloneContents());
+          return span;
+        });
+        if (fragments.length) {
+          item.replaceChildren(...fragments);
+          item.classList.add('has-plastic-lines');
+          item.style.height = `${originalHeight}px`;
+        }
+      });
+    }
+
     function updateTrajectories() {
       const anchor = window.innerHeight * P.trajectoryAnchor / 100;
       document.querySelectorAll('.axis-row').forEach((row) => {
@@ -348,7 +401,18 @@
         // текстовой оси своей строки, а не останавливается между колонками.
         const bodyShift = bodyPoint.x * span * P.bodyStrength / 100;
         const signalShift = (signalPoint.x - 1) * span * P.bodyStrength / 100;
-        if (bodyItem) bodyItem.style.setProperty('--trajectory-x', `${bodyShift}px`);
+        if (bodyItem) {
+          const lines = bodyItem.querySelectorAll('.plastic-line');
+          bodyItem.style.setProperty('--trajectory-x', lines.length ? '0px' : `${bodyShift}px`);
+          lines.forEach(line => {
+            const rect = line.getBoundingClientRect();
+            const progress = Math.max(0, Math.min(1, 0.5 + (rect.top + rect.height / 2 - anchor) / Math.max(1, P.bodyPath)));
+            const point = pointAtScroll(P.bodyTrajectory, progress);
+            const lineShift = point.x * span * P.bodyStrength / 100;
+            const shift = bodyShift + (lineShift - bodyShift) * P.bodyPlasticity / 100;
+            line.style.setProperty('--line-x', `${shift}px`);
+          });
+        }
         if (signalItem) signalItem.style.setProperty('--trajectory-x', `${signalShift}px`);
         const heading = row.querySelector('.axis-heading');
         const headingItem = heading.firstElementChild;
@@ -393,7 +457,7 @@
       });
     }
     window.addEventListener('scroll', scheduleTrajectories, { passive: true });
-    window.addEventListener('resize', updateTrajectories);
+    window.addEventListener('resize', () => { rebuildBodyLines(); updateTrajectories(); });
     requestAnimationFrame(updateTrajectories);
 
     function applyAppearance() {
@@ -460,6 +524,7 @@
         ['bodyAlign', 'Выключка', 'выключка'],
         ['bodyFontSize', 'Кегль', 'кегль', { ot0: 12, do: 36 }],
         ['bodyLineHeight', 'Межстрочка', 'доля', { ot: 'кегль', kak: '×', ot0: 1, do: 2.5 }],
+        ['bodyPlasticity', 'Пластичность', 'доля', { ot: 'своё', ot0: 0, do: 100, shag: 1 }],
         ['h', 'Ось номеров: текст'],
         ['signalInk', 'Краска', 'цвет'],
         ['signalFont', 'Шрифт', 'выбор', { iz: FONT_CHOICES }],
@@ -507,15 +572,23 @@
         bodyStrength: 'Общая амплитуда движения обеих осей по их кривым.',
         bodyFontSize: 'Размер букв основного текста.',
         bodyLineHeight: 'Расстояние между строками основного текста.',
+        bodyPlasticity: '0 — абзац скользит целиком; 100 — каждая строка считывает кривую на своей высоте. Буквы не поворачиваются, высота абзаца сохраняется.',
         rowGap: 'Общий интервал между соседними элементами. Делится поровну на верх и низ каждой общей строки всех трёх осей.',
         signalTrajectory: 'Вертикаль кривой совпадает с положением блока: при скролле вниз кривая считывается снизу вверх. По горизонтали 1 — её исходное место, 0 — пустое место в оси текста.',
         signalFontSize: 'Размер букв второй оси.',
         signalLineHeight: 'Расстояние между строками второй оси.'
       },
-      onChange: function () { applyAppearance(); updateTrajectories(); panel.save(); }
+      onChange: function (key) {
+        applyAppearance();
+        if (!key || ['bodyFont', 'bodyWeight', 'bodyFontSize', 'bodyLineHeight', 'bodyColumn', 'bodyAlign', 'bodyPlasticity'].includes(key)) rebuildBodyLines();
+        updateTrajectories();
+        panel.save();
+      }
     });
     applyAppearance();
-    document.fonts.addEventListener('loadingdone', updateTrajectories);
+    rebuildBodyLines();
+    updateTrajectories();
+    document.fonts.addEventListener('loadingdone', () => { rebuildBodyLines(); updateTrajectories(); });
 
     const saveSettings = document.createElement('button');
     saveSettings.type = 'button';
