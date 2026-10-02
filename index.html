@@ -274,7 +274,7 @@
       P.ink = P.signalInk = P.headingInk = '#ababab';
       P.uniformInkVersion = 1;
     }
-    if (savedParams.rowGap == null) P.rowGap = 20 + 2 * P.paragraphAir;
+    if (savedParams.rowGap == null) P.rowGap = savedParams.paragraphAir != null ? 20 + 2 * savedParams.paragraphAir : DEFAULTS.rowGap;
     const sourceAxis = document.querySelector('.text-axis');
     const twoAxes = document.getElementById('two-axes');
     const PARAGRAPH_LIMIT = 650;
