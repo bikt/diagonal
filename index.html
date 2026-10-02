@@ -169,11 +169,11 @@
       "bodyColumn": 45,
       "bodyFont": "Suisse Intl",
       "signalFont": "Druk Wide Cyr",
-      "bodyWeight": "300",
+      "bodyWeight": "400",
       "signalWeight": "700",
       "signalCase": "none",
-      "bodyLineHeight": 1.16,
-      "bodyIndent": 6.3,
+      "bodyLineHeight": 1,
+      "bodyIndent": 4.7,
       "bodyPlasticity": 100,
       "signalFontSize": 60,
       "signalLineHeight": 1.48,
@@ -247,7 +247,7 @@
       "bodyTrajectoryVersion": 1,
       "headingTrajectoryVersion": 1,
       "bodyColumnVersion": 1,
-      "bodyTypographyVersion": 1
+      "bodyTypographyVersion": 2
     };
     const P = Object.assign({}, DEFAULTS);
     let savedParams = {};
@@ -261,6 +261,7 @@
     if (migrateBodyTypography) {
       P.bodyWeight = DEFAULTS.bodyWeight;
       P.bodyIndent = DEFAULTS.bodyIndent;
+      P.bodyLineHeight = DEFAULTS.bodyLineHeight;
       P.bodyTypographyVersion = DEFAULTS.bodyTypographyVersion;
     }
     // Одноразово заменяем старую локально сохранённую кривую первой оси.
