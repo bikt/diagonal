@@ -191,8 +191,8 @@
             "r": 0.5
           },
           {
-            "x": 0.8982,
-            "y": 0.9902,
+            "x": 0.9788,
+            "y": 0.9694,
             "r": 0.5
           }
         ],
@@ -241,7 +241,8 @@
       "trajectoryAnchorVersion": 4,
       "axisCoordinatesVersion": 5,
       "uniformInkVersion": 1,
-      "bodyTrajectoryVersion": 1
+      "bodyTrajectoryVersion": 1,
+      "headingTrajectoryVersion": 1
     };
     const P = Object.assign({}, DEFAULTS);
     let savedParams = {};
@@ -252,6 +253,11 @@
     if (migrateBodyTrajectory) {
       P.bodyTrajectory = JSON.parse(JSON.stringify(DEFAULTS.bodyTrajectory));
       P.bodyTrajectoryVersion = DEFAULTS.bodyTrajectoryVersion;
+    }
+    const migrateHeadingTrajectory = savedParams.headingTrajectoryVersion !== DEFAULTS.headingTrajectoryVersion;
+    if (migrateHeadingTrajectory) {
+      P.headingTrajectory = JSON.parse(JSON.stringify(DEFAULTS.headingTrajectory));
+      P.headingTrajectoryVersion = DEFAULTS.headingTrajectoryVersion;
     }
     // Новые стартовые цвета и выключка применяются один раз и не мешают
     // последующим сохранённым настройкам пользователя.
@@ -653,7 +659,7 @@
       window.setTimeout(() => { saveSettings.textContent = 'Сохранить настройки'; }, 1200);
     });
     panel.panel.appendChild(saveSettings);
-    if (migrateBodyTrajectory) panel.save();
+    if (migrateBodyTrajectory || migrateHeadingTrajectory) panel.save();
   </script>
 </body>
 </html>
