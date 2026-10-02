@@ -28,7 +28,7 @@
     .two-axes { width: min(100% - clamp(32px, 8vw, 160px), 1320px); margin: 0 auto; padding: clamp(48px, 9vw, 144px) 0; }
     .axis-row { display: grid; grid-template-columns: minmax(0, var(--body-column, 62.26fr)) minmax(0, var(--signal-column, 18.87fr)) minmax(0, var(--signal-column, 18.87fr)); column-gap: clamp(16px, 3.5vw, 75px); padding-block: calc(var(--row-gap, 20px) / 2); }
     .axis-cell { min-width: 0; grid-row: 1; font-synthesis: none; }
-    .axis-body { font-style: var(--body-style, normal); }
+    .axis-body { font-style: var(--body-style, normal); overflow-wrap: anywhere; }
     .axis-signal { font-style: var(--signal-style, normal); }
     .axis-heading { font-style: var(--heading-style, normal); }
     .axis-body { grid-column: 1; text-align: var(--body-align, left); font-size: var(--body-size, inherit); line-height: var(--body-line-height, inherit); }
@@ -37,7 +37,7 @@
     .axis-signal > *, .axis-body > *, .axis-heading > * { transform: translate3d(var(--trajectory-x, 0px), 0, 0); will-change: transform; }
     .st-save-settings { width: calc(100% - 24px); margin: 12px; padding: 9px 10px; border: 0; border-radius: 7px; background: var(--st-accent, #171717); color: #fff; font: 12px/1 Inter, Arial, sans-serif; cursor: pointer; }
     .st-save-settings:active { transform: translateY(1px); }
-    .axis-signal .number { margin: 0; white-space: nowrap; }
+    .axis-signal .number { margin: 0; white-space: nowrap; width: max-content; }
     .axis-signal h1, .axis-signal h2 { margin: 0; }
     .axis-signal blockquote { margin: 0; padding: 0; }
     .axis-body p { margin: 0; }
@@ -45,7 +45,7 @@
     .axis-signal { font-family: var(--signal-font, Arial), sans-serif; font-weight: var(--signal-weight, 400); text-transform: var(--signal-case, none); }
     .axis-signal { text-align: var(--signal-align, left); }
     .axis-heading { grid-column: 3; color: var(--heading-ink); font-family: var(--heading-font), sans-serif; font-weight: var(--heading-weight); font-size: var(--heading-size); line-height: var(--heading-line-height); text-align: var(--heading-align); text-transform: var(--heading-case); }
-    .axis-heading > * { margin: 0; width: var(--heading-text-width, 100%); }
+    .axis-heading > * { margin: 0; width: min(var(--heading-text-width, 100%), calc(100vw - 32px)); overflow-wrap: anywhere; }
     .plastic-line { display: block; white-space: nowrap; transform: translate3d(var(--line-x, 0px), 0, 0); will-change: transform; }
     @media (max-width: 720px) {
       .axis-row { column-gap: 24px; }
@@ -339,6 +339,7 @@
     // Сохраняем исходную разметку, чтобы пересобрать строки после смены шрифта/ширины.
     const bodyOriginals = new WeakMap();
     function rebuildBodyLines() {
+      fitNumbers();
       document.querySelectorAll('.axis-body > *').forEach(item => {
         if (!bodyOriginals.has(item)) bodyOriginals.set(item, Array.from(item.childNodes, node => node.cloneNode(true)));
         item.replaceChildren(...bodyOriginals.get(item).map(node => node.cloneNode(true)));
@@ -386,8 +387,47 @@
       });
     }
 
+    // Номер остаётся одной строкой. Его кегль уменьшается лишь когда сам
+    // номер шире доступного экрана; значение в панели остаётся эталоном.
+    function fitNumbers() {
+      const numbers = Array.from(document.querySelectorAll('.axis-signal .number'));
+      numbers.forEach(item => { item.style.fontSize = ''; });
+      const widest = Math.max(1, ...numbers.map(item => item.getBoundingClientRect().width));
+      // Доля текстовой колонки оставляет номеру место и для перемещения.
+      const available = Math.max(1, (window.innerWidth - 32) * P.bodyColumn / 100);
+      const scale = Math.min(1, available / widest);
+      numbers.forEach(item => { item.style.fontSize = `${P.signalFontSize * scale}px`; });
+    }
+
+    // Сжимаем коридор целиком, а не прижимаем отдельные строки к краю.
+    // Все точки одной оси получают одно преобразование: форма сохраняется.
+    function fitTrajectory(trajectory, origin, distance, offset, width) {
+      let low = Infinity, high = -Infinity;
+      for (let i = 0; i <= 192; i += 1) {
+        const x = StendPanel.put.tochka(trajectory, i / 192, 1, 1).x;
+        const position = origin + (x - offset) * distance;
+        low = Math.min(low, position);
+        high = Math.max(high, position);
+      }
+      const left = 16;
+      const right = Math.max(left, window.innerWidth - 16 - width);
+      if (low >= left && high <= right) return shift => shift;
+      const range = high - low;
+      const scale = range > 0 ? Math.min(1, (right - left) / range) : 1;
+      const start = Math.max(left, Math.min(low, right - range * scale));
+      return shift => start + (origin + shift - low) * scale - origin;
+    }
+
     function updateTrajectories() {
       const anchor = window.innerHeight * P.trajectoryAnchor / 100;
+      const firstRow = document.querySelector('.axis-row');
+      if (!firstRow) return;
+      const origins = ['body', 'signal', 'heading'].map(axis => firstRow.querySelector(`.axis-${axis}`).getBoundingClientRect().left);
+      const widths = ['body', 'signal', 'heading'].map(axis => Math.max(1, ...Array.from(document.querySelectorAll(`.axis-${axis} > *`), item => item.getBoundingClientRect().width)));
+      const distance = (origins[1] - origins[0]) * P.bodyStrength / 100;
+      const bodyFit = fitTrajectory(P.bodyTrajectory, origins[0], distance, 0, widths[0]);
+      const signalFit = fitTrajectory(P.signalTrajectory, origins[1], distance, 1, widths[1]);
+      const headingFit = fitTrajectory(P.headingTrajectory, origins[2], (origins[2] - origins[0]) * P.bodyStrength / 100, 1, widths[2]);
       document.querySelectorAll('.axis-row').forEach((row) => {
         const body = row.querySelector('.axis-body');
         const signal = row.querySelector('.axis-signal');
@@ -408,23 +448,23 @@
         const signalShift = (signalPoint.x - 1) * span * P.bodyStrength / 100;
         if (bodyItem) {
           const lines = bodyItem.querySelectorAll('.plastic-line');
-          bodyItem.style.setProperty('--trajectory-x', lines.length ? '0px' : `${bodyShift}px`);
+          bodyItem.style.setProperty('--trajectory-x', lines.length ? '0px' : `${bodyFit(bodyShift)}px`);
           lines.forEach(line => {
             const rect = line.getBoundingClientRect();
             const progress = Math.max(0, Math.min(1, 0.5 + (rect.top + rect.height / 2 - anchor) / Math.max(1, P.bodyPath)));
             const point = pointAtScroll(P.bodyTrajectory, progress);
             const lineShift = point.x * span * P.bodyStrength / 100;
             const shift = bodyShift + (lineShift - bodyShift) * P.bodyPlasticity / 100;
-            line.style.setProperty('--line-x', `${shift}px`);
+            line.style.setProperty('--line-x', `${bodyFit(shift)}px`);
           });
         }
-        if (signalItem) signalItem.style.setProperty('--trajectory-x', `${signalShift}px`);
+        if (signalItem) signalItem.style.setProperty('--trajectory-x', `${signalFit(signalShift)}px`);
         const heading = row.querySelector('.axis-heading');
         const headingItem = heading.firstElementChild;
         if (headingItem) {
           const headingPoint = pointAtScroll(P.headingTrajectory, bodyProgress);
           const headingSpan = heading.getBoundingClientRect().left - bodyRect.left;
-          headingItem.style.setProperty('--trajectory-x', `${(headingPoint.x - 1) * headingSpan * P.bodyStrength / 100}px`);
+          headingItem.style.setProperty('--trajectory-x', `${headingFit((headingPoint.x - 1) * headingSpan * P.bodyStrength / 100)}px`);
         }
       });
     }
@@ -585,7 +625,7 @@
       },
       onChange: function (key) {
         applyAppearance();
-        if (!key || ['bodyFont', 'bodyWeight', 'bodyFontSize', 'bodyLineHeight', 'bodyColumn', 'bodyAlign', 'bodyPlasticity'].includes(key)) rebuildBodyLines();
+        if (!key || ['bodyFont', 'bodyWeight', 'bodyFontSize', 'bodyLineHeight', 'bodyColumn', 'bodyAlign', 'bodyPlasticity', 'signalFont', 'signalWeight', 'signalFontSize'].includes(key)) rebuildBodyLines();
         updateTrajectories();
         panel.save();
       }
