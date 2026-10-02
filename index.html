@@ -5,9 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Эволюция сеток</title>
   <link rel="stylesheet" href="./panel.css">
-  <!-- Закон: страница смотрит на ширину окна, порядок фрагментов и кривые двух осей. Общая вертикальная последовательность сохраняется, а кривые меняют только горизонтальное положение содержимого в его резервной строке. -->
+  <link rel="stylesheet" href="./fonts.css">
+  <!-- Закон: страница смотрит на ширину окна, порядок фрагментов и кривые трёх осей. Общая вертикальная последовательность сохраняется: в строке занят только один столбец. Кривые меняют только горизонтальное положение содержимого в его резервной строке. -->
   <style>
-    :root { --page: #1c1c1c; --ink: #cdcdcd; --signal-ink: #4c4c4c; --muted: #6d6d6d; --rule: #dedede; }
+    :root { --page: #1c1c1c; --ink: #ababab; --signal-ink: #ababab; --muted: #6d6d6d; --rule: #dedede; }
     * { box-sizing: border-box; }
     html, body { overflow-x: clip; }
     body { margin: 0; background: var(--page); color: var(--ink); font-family: Inter, Arial, sans-serif; font-size: clamp(16px, 1.1vw, 19px); line-height: 1.48; }
@@ -21,24 +22,30 @@
     .formula { white-space: pre-line; }
     a { color: inherit; text-decoration: none; }
     /* Закон: статья — одна вертикальная последовательность строк. В каждой
-       строке занят только один из двух столбцов, поэтому пустота второй оси
-       точно повторяет место элемента первой. */
+       строке занят только один из трёх столбцов, поэтому пустота других осей
+       точно повторяет место занятого элемента. */
     .text-axis { display: none; }
     .two-axes { width: min(100% - clamp(32px, 8vw, 160px), 1320px); margin: 0 auto; padding: clamp(48px, 9vw, 144px) 0; }
-    .axis-row { display: grid; grid-template-columns: minmax(0, var(--body-column, 62.26fr)) minmax(0, var(--signal-column, 37.74fr)); column-gap: clamp(32px, 7vw, 150px); padding-block: calc(10px + var(--paragraph-air, 0px)); }
-    .axis-cell { min-width: 0; }
+    .axis-row { display: grid; grid-template-columns: minmax(0, var(--body-column, 62.26fr)) minmax(0, var(--signal-column, 18.87fr)) minmax(0, var(--signal-column, 18.87fr)); column-gap: clamp(16px, 3.5vw, 75px); padding-block: calc(var(--row-gap, 20px) / 2); }
+    .axis-cell { min-width: 0; grid-row: 1; font-synthesis: none; }
+    .axis-body { font-style: var(--body-style, normal); }
+    .axis-signal { font-style: var(--signal-style, normal); }
+    .axis-heading { font-style: var(--heading-style, normal); }
     .axis-body { grid-column: 1; text-align: var(--body-align, left); font-size: var(--body-size, inherit); line-height: var(--body-line-height, inherit); }
     .axis-signal { grid-column: 2; color: var(--signal-ink); font-size: var(--signal-size, inherit); line-height: var(--signal-line-height, inherit); }
     .axis-signal .number { color: var(--signal-ink); }
-    .axis-signal > *, .axis-body > * { transform: translate3d(var(--trajectory-x, 0px), 0, 0); will-change: transform; }
+    .axis-signal > *, .axis-body > *, .axis-heading > * { transform: translate3d(var(--trajectory-x, 0px), 0, 0); will-change: transform; }
     .st-save-settings { width: calc(100% - 24px); margin: 12px; padding: 9px 10px; border: 0; border-radius: 7px; background: var(--st-accent, #171717); color: #fff; font: 12px/1 Inter, Arial, sans-serif; cursor: pointer; }
     .st-save-settings:active { transform: translateY(1px); }
-    .axis-signal .number { margin: 0; }
+    .axis-signal .number { margin: 0; white-space: nowrap; }
     .axis-signal h1, .axis-signal h2 { margin: 0; }
     .axis-signal blockquote { margin: 0; padding: 0; }
     .axis-body p { margin: 0; }
     .axis-body { font-family: var(--body-font, Arial), sans-serif; font-weight: var(--body-weight, 400); }
     .axis-signal { font-family: var(--signal-font, Arial), sans-serif; font-weight: var(--signal-weight, 400); text-transform: var(--signal-case, none); }
+    .axis-signal { text-align: var(--signal-align, left); }
+    .axis-heading { grid-column: 3; color: var(--heading-ink); font-family: var(--heading-font), sans-serif; font-weight: var(--heading-weight); font-size: var(--heading-size); line-height: var(--heading-line-height); text-align: var(--heading-align); text-transform: var(--heading-case); }
+    .axis-heading > * { margin: 0; width: var(--heading-text-width, 100%); }
     @media (max-width: 720px) {
       .axis-row { column-gap: 24px; }
     }
@@ -140,45 +147,103 @@
       <p>Живая модель: <a href="https://mapa-grid.vercel.app">https://mapa-grid.vercel.app</a> — потяните окно, покрутите параметры или нажмите кнопку формата: 360, 768, 1440. Разбор устройства — кнопка «Сетка с объяснениями» в правом верхнем углу модели: она включает силовые линии и подписи решений прямо на полосе.</p>
     </section>
   </main>
-  <div class="two-axes" id="two-axes" aria-label="Две синхронизированные оси статьи"></div>
+  <div class="two-axes" id="two-axes" aria-label="Три синхронизированные оси статьи"></div>
   <script src="./panel.js"></script>
   <script src="./panel-lib/obyavlenie.js"></script>
   <script src="./panel-lib/segment.js"></script>
   <script src="./panel-lib/uzly.js"></script>
   <script src="./panel-lib/traektoriya.js"></script>
+  <script src="./fonts.js"></script>
   <script>
     'use strict';
     const DEFAULTS = {
-      bodyPath: 900,
-      bodyStrength: 100,
-      trajectoryAnchor: 45,
-      paragraphAir: 0,
-      bodyFontSize: 14,
-      bodyColumn: 62.26,
-      bodyFont: 'Inter',
-      signalFont: 'Inter',
-      bodyWeight: '400',
-      signalWeight: '400',
-      signalCase: 'none',
-      bodyLineHeight: 1.48,
-      signalFontSize: 14,
-      signalLineHeight: 1.48,
-      ink: '#cdcdcd',
-      bg: '#1c1c1c',
-      signalInk: '#4c4c4c',
-      bodyAlign: 'right',
-      bodyTrajectory: {
-        uzly: [{ x: 0, y: 0, r: 0.5 }, { x: 0.5, y: 0.5, r: 0.5 }, { x: 1, y: 1, r: 0.5 }],
-        zamknut: false
-      },
-      signalTrajectory: {
-        uzly: [
-          { x: 0.015, y: -0.015, r: 0.5 },
-          { x: 0.614, y: 0.453, r: 0.5, ho: { x: 0, y: -0.453 }, hi: { x: 0, y: 0.453 } },
-          { x: 0, y: 1, r: 0.5 }
+      "bodyPath": 900,
+      "bodyStrength": 100,
+      "trajectoryAnchor": 45,
+      "paragraphAir": 0,
+      "rowGap": 0,
+      "bodyFontSize": 18,
+      "bodyColumn": 62,
+      "bodyFont": "Suisse Intl",
+      "signalFont": "Druk Wide Cyr",
+      "bodyWeight": "400",
+      "signalWeight": "700",
+      "signalCase": "none",
+      "bodyLineHeight": 1.16,
+      "signalFontSize": 60,
+      "signalLineHeight": 1.48,
+      "signalAlign": "left",
+      "headingFont": "Druk Wide Cyr",
+      "headingWeight": "700",
+      "headingCase": "none",
+      "headingFontSize": 24,
+      "headingTextWidth": 200,
+      "headingLineHeight": 1,
+      "headingAlign": "left",
+      "headingInk": "#ababab",
+      "headingTrajectory": {
+        "uzly": [
+          {
+            "x": 0.1875,
+            "y": 0.0944,
+            "r": 0.5
+          },
+          {
+            "x": 0.8024,
+            "y": 0.5423,
+            "r": 0.5
+          },
+          {
+            "x": 1,
+            "y": 1,
+            "r": 0.5
+          }
         ],
-        zamknut: false
-      }
+        "zamknut": false
+      },
+      "ink": "#ababab",
+      "bg": "#1c1c1c",
+      "signalInk": "#ababab",
+      "bodyAlign": "left",
+      "bodyTrajectory": {
+        "uzly": [
+          {
+            "x": 0,
+            "y": 0,
+            "r": 0.5
+          },
+          {
+            "x": 0.5,
+            "y": 0.5,
+            "r": 0.5
+          },
+          {
+            "x": 1,
+            "y": 1,
+            "r": 0.5
+          }
+        ],
+        "zamknut": false
+      },
+      "signalTrajectory": {
+        "uzly": [
+          {
+            "x": 0.3387,
+            "y": -0.0158,
+            "r": 0.5
+          },
+          {
+            "x": 0.9889,
+            "y": 0.9634,
+            "r": 0.5
+          }
+        ],
+        "zamknut": false
+      },
+      "styleDefaultsVersion": 4,
+      "trajectoryAnchorVersion": 4,
+      "axisCoordinatesVersion": 5,
+      "uniformInkVersion": 1
     };
     const P = Object.assign({}, DEFAULTS);
     let savedParams = {};
@@ -200,6 +265,19 @@
       P.axisCoordinatesVersion = 5;
     }
 
+    // Исправляем только прежнюю перепутанную пару плеч, не сбрасывая другие правки.
+    const signalMiddle = P.signalTrajectory?.uzly?.[1];
+    if (signalMiddle?.ho?.x === 0 && signalMiddle?.hi?.x === 0 &&
+        signalMiddle.ho.y === -0.453 && signalMiddle.hi.y === 0.453) {
+      signalMiddle.ho.y = 0.453;
+      signalMiddle.hi.y = -0.453;
+    }
+
+    if (savedParams.uniformInkVersion !== 1) {
+      P.ink = P.signalInk = P.headingInk = '#ababab';
+      P.uniformInkVersion = 1;
+    }
+    if (savedParams.rowGap == null) P.rowGap = 20 + 2 * P.paragraphAir;
     const sourceAxis = document.querySelector('.text-axis');
     const twoAxes = document.getElementById('two-axes');
     const PARAGRAPH_LIMIT = 650;
@@ -231,16 +309,32 @@
       });
     }
 
+    // Явно выбранные фразы-подзаголовки: короткий размер сам по себе
+    // не делает любое предложение заголовком.
+    const headingPhrases = new Set([
+      'Начнём с самого начала.',
+      'Проще говоря, сначала композиция – потом сетка.',
+      'Чтобы увидеть, где в конце концов заработал сам автомат, надо кое-что понять о самой сетке.',
+      'Заметьте: позиции никто не назначал — они вычисляются из самого материала.',
+      'Ну хорошо. А как она выглядит, эта алгоритмическая сетка?',
+      'Но как это выглядит в деле, покажу на нашей собственной модели — фотогалерее Mapa Grid, свёрстанной на вайб-кодинге.',
+      'Таким образом, макет родился из одного правила: вписать фото в квадратный модуль.',
+      'У Герстнера был запас готовых вариантов — здесь эталон и коэффициент.'
+    ]);
     Array.from(sourceAxis.querySelectorAll('h1, h2, .number, blockquote, p')).flatMap(splitParagraph).forEach((source) => {
       const row = document.createElement('article');
       const signal = document.createElement('div');
       const body = document.createElement('div');
+      const heading = document.createElement('div');
       row.className = 'axis-row';
       signal.className = 'axis-cell axis-signal';
       body.className = 'axis-cell axis-body';
-      if (source.matches('p')) body.appendChild(source.cloneNode(true));
+      heading.className = 'axis-cell axis-heading';
+      if (source.matches('h1, h2, blockquote, .formula') || headingPhrases.has(source.textContent.trim())) heading.appendChild(source.cloneNode(true));
+      else if (source.matches('p')) body.appendChild(source.cloneNode(true));
       else signal.appendChild(source.cloneNode(true));
-      row.append(signal, body);
+      if (heading.firstElementChild) row.classList.add('has-heading');
+      row.append(body, signal, heading);
       twoAxes.appendChild(row);
     });
 
@@ -266,6 +360,13 @@
         const signalShift = (signalPoint.x - 1) * span * P.bodyStrength / 100;
         if (bodyItem) bodyItem.style.setProperty('--trajectory-x', `${bodyShift}px`);
         if (signalItem) signalItem.style.setProperty('--trajectory-x', `${signalShift}px`);
+        const heading = row.querySelector('.axis-heading');
+        const headingItem = heading.firstElementChild;
+        if (headingItem) {
+          const headingPoint = pointAtScroll(P.headingTrajectory, bodyProgress);
+          const headingSpan = heading.getBoundingClientRect().left - bodyRect.left;
+          headingItem.style.setProperty('--trajectory-x', `${(headingPoint.x - 1) * headingSpan * P.bodyStrength / 100}px`);
+        }
       });
     }
     // На редакторе кривой вертикаль — время скролла, горизонталь — положение
@@ -306,29 +407,60 @@
     requestAnimationFrame(updateTrajectories);
 
     function applyAppearance() {
+      for (const axis of ['body', 'signal', 'heading']) {
+        const family = P[`${axis}Font`];
+        const choices = FONT_CATALOG[family];
+        if (!choices) continue;
+        if (!choices.some(([value]) => value === String(P[`${axis}Weight`]))) {
+          P[`${axis}Weight`] = (choices.find(([value]) => value === '400') || choices[0])[0];
+        }
+        const selector = document.getElementById(`st-horizontal-longread-params-${axis}Weight`);
+        if (selector) {
+          if (selector.dataset.family !== family) {
+            selector.replaceChildren(...choices.map(([value, label]) => {
+              const option = document.createElement('option');
+              option.value = value;
+              option.textContent = label;
+              return option;
+            }));
+            selector.dataset.family = family;
+          }
+          selector.value = P[`${axis}Weight`];
+        }
+        document.documentElement.style.setProperty(`--${axis}-style`, String(P[`${axis}Weight`]).includes('-italic') ? 'italic' : 'normal');
+      }
       const root = document.documentElement.style;
       root.setProperty('--ink', P.ink);
       root.setProperty('--page', P.bg);
       root.setProperty('--signal-ink', P.signalInk);
       root.setProperty('--body-align', P.bodyAlign);
-      root.setProperty('--paragraph-air', `${P.paragraphAir}px`);
+      root.setProperty('--row-gap', `${P.rowGap}px`);
       root.setProperty('--body-size', `${P.bodyFontSize}px`);
       root.setProperty('--body-line-height', P.bodyLineHeight);
       root.setProperty('--signal-size', `${P.signalFontSize}px`);
       root.setProperty('--signal-line-height', P.signalLineHeight);
       root.setProperty('--body-column', `${P.bodyColumn}fr`);
-      root.setProperty('--signal-column', `${100 - P.bodyColumn}fr`);
+      root.setProperty('--signal-column', `${(100 - P.bodyColumn) / 2}fr`);
       root.setProperty('--body-font', `"${P.bodyFont}"`);
       root.setProperty('--signal-font', `"${P.signalFont}"`);
-      root.setProperty('--body-weight', P.bodyWeight);
-      root.setProperty('--signal-weight', P.signalWeight);
+      root.setProperty('--body-weight', parseInt(P.bodyWeight, 10));
+      root.setProperty('--signal-weight', parseInt(P.signalWeight, 10));
       root.setProperty('--signal-case', P.signalCase);
+      root.setProperty('--signal-align', P.signalAlign);
+      root.setProperty('--heading-font', `"${P.headingFont}"`);
+      root.setProperty('--heading-weight', parseInt(P.headingWeight, 10));
+      root.setProperty('--heading-case', P.headingCase);
+      root.setProperty('--heading-size', `${P.headingFontSize}px`);
+      root.setProperty('--heading-text-width', `${P.headingTextWidth}%`);
+      root.setProperty('--heading-line-height', P.headingLineHeight);
+      root.setProperty('--heading-align', P.headingAlign);
+      root.setProperty('--heading-ink', P.headingInk);
     }
     applyAppearance();
 
-    const MESTA = { 'Ось текста': '.axis-body', 'Ось номеров': '.axis-signal' };
-    const FONT_CHOICES = [['Inter', 'Inter'], ['Arial', 'Arial'], ['Verdana', 'Verdana'], ['Georgia', 'Georgia'], ['Times New Roman', 'Times New Roman'], ['Courier New', 'Courier New']];
-    const WEIGHT_CHOICES = [['300', 'Light'], ['400', 'Regular'], ['500', 'Medium'], ['600', 'Semibold'], ['700', 'Bold']];
+    const MESTA = { 'Ось текста': '.axis-body', 'Ось номеров': '.axis-signal', 'Ось заголовков': '.axis-heading' };
+    const FONT_CHOICES = Object.keys(FONT_CATALOG).sort().map(name => [name, name]);
+    const WEIGHT_CHOICES = FONT_CATALOG['Suisse Intl'];
     const ZAKON = [
         ['h', 'Основной текст'],
         ['ink', 'Краска', 'цвет'],
@@ -338,14 +470,25 @@
         ['bodyAlign', 'Выключка', 'выключка'],
         ['bodyFontSize', 'Кегль', 'кегль', { ot0: 12, do: 36 }],
         ['bodyLineHeight', 'Межстрочка', 'доля', { ot: 'кегль', kak: '×', ot0: 1, do: 2.5 }],
-        ['paragraphAir', 'Разрядка абзацев, px', 0, 100, 2],
         ['h', 'Ось номеров: текст'],
         ['signalInk', 'Краска', 'цвет'],
         ['signalFont', 'Шрифт', 'выбор', { iz: FONT_CHOICES }],
         ['signalWeight', 'Начертание', 'выбор', { iz: WEIGHT_CHOICES }],
         ['signalCase', 'Регистр', 'выбор', { iz: [['none', 'Обычный'], ['uppercase', 'АППЕРКЕЙС']] }],
-        ['signalFontSize', 'Кегль', 'кегль', { ot0: 12, do: 36 }],
+        ['signalAlign', 'Выключка', 'выключка'],
+        ['signalFontSize', 'Кегль', 'кегль', { ot0: 12, do: 150 }],
         ['signalLineHeight', 'Межстрочка', 'доля', { ot: 'кегль', kak: '×', ot0: 1, do: 2.5 }],
+        ['h', 'Третья ось: заголовки'],
+        ['headingInk', 'Краска', 'цвет'],
+        ['headingFont', 'Шрифт', 'выбор', { iz: FONT_CHOICES }],
+        ['headingWeight', 'Начертание', 'выбор', { iz: WEIGHT_CHOICES }],
+        ['headingCase', 'Регистр', 'выбор', { iz: [['none', 'Обычный'], ['uppercase', 'АППЕРКЕЙС']] }],
+        ['headingAlign', 'Выключка', 'выключка'],
+        ['headingFontSize', 'Кегль', 'кегль', { ot0: 12, do: 36 }],
+        ['headingTextWidth', 'Ширина текста', 'доля', { ot: 'колонка', ot0: 20, do: 200, shag: 1 }],
+        ['headingLineHeight', 'Межстрочка', 'доля', { ot: 'кегль', kak: '×', ot0: 1, do: 2.5 }],
+        ['h', 'Вертикальные интервалы'],
+        ['rowGap', 'Между элементами', 'зазор', { ot0: 0, do: 300, shag: 1 }],
         ['h', 'Страница'],
         ['bg', 'Фон', 'цвет']
     ];
@@ -356,6 +499,8 @@
       ['bodyPath', 'Длина прохода обеих осей, px', 200, 2000, 10],
       ['h', 'Вторая ось: собственная кривая'],
       ['signalTrajectory', 'Кривая номеров: X — в сторону, Y — скролл', 'traektoriya', { mesto: '.two-axes' }],
+      ['h', 'Третья ось: собственная кривая'],
+      ['headingTrajectory', 'Кривая заголовков: X — в сторону, Y — положение', 'traektoriya', { mesto: '.two-axes' }],
     );
 
     const panel = StendPanel.build({
@@ -372,13 +517,15 @@
         bodyStrength: 'Общая амплитуда движения обеих осей по их кривым.',
         bodyFontSize: 'Размер букв основного текста.',
         bodyLineHeight: 'Расстояние между строками основного текста.',
-        paragraphAir: 'Дополнительное пустое место вокруг каждой синхронизированной строки.',
+        rowGap: 'Общий интервал между соседними элементами. Делится поровну на верх и низ каждой общей строки всех трёх осей.',
         signalTrajectory: 'Вертикаль кривой совпадает с положением блока: при скролле вниз кривая считывается снизу вверх. По горизонтали 1 — её исходное место, 0 — пустое место в оси текста.',
         signalFontSize: 'Размер букв второй оси.',
         signalLineHeight: 'Расстояние между строками второй оси.'
       },
-      onChange: function () { applyAppearance(); updateTrajectories(); }
+      onChange: function () { applyAppearance(); updateTrajectories(); panel.save(); }
     });
+    applyAppearance();
+    document.fonts.addEventListener('loadingdone', updateTrajectories);
 
     const saveSettings = document.createElement('button');
     saveSettings.type = 'button';

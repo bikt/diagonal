@@ -1,0 +1,49 @@
+/* Локально подключённые файлы гарнитур. Публикация требует подходящей веб-лицензии. */
+@font-face { font-family: 'Suisse Intl'; src: url('./fonts/SuisseIntl-BoldItalic.otf') format('opentype'); font-weight: 700; font-style: italic; font-display: swap; }
+@font-face { font-family: 'Suisse Intl'; src: url('./fonts/SuisseIntl-Book.otf') format('opentype'); font-weight: 450; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Suisse Intl'; src: url('./fonts/SuisseIntl-BookItalic.otf') format('opentype'); font-weight: 450; font-style: italic; font-display: swap; }
+@font-face { font-family: 'Suisse Intl'; src: url('./fonts/SuisseIntl-Light.otf') format('opentype'); font-weight: 300; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Suisse Intl'; src: url('./fonts/SuisseIntl-LightItalic.otf') format('opentype'); font-weight: 300; font-style: italic; font-display: swap; }
+@font-face { font-family: 'Suisse Intl'; src: url('./fonts/SuisseIntl-Medium.otf') format('opentype'); font-weight: 500; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Suisse Intl'; src: url('./fonts/SuisseIntl-MediumItalic.otf') format('opentype'); font-weight: 500; font-style: italic; font-display: swap; }
+@font-face { font-family: 'Suisse Intl'; src: url('./fonts/SuisseIntl-Regular.otf') format('opentype'); font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Suisse Intl'; src: url('./fonts/SuisseIntl-RegularItalic.otf') format('opentype'); font-weight: 400; font-style: italic; font-display: swap; }
+@font-face { font-family: 'Suisse Intl'; src: url('./fonts/SuisseIntl-SemiBold.otf') format('opentype'); font-weight: 600; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Suisse Intl'; src: url('./fonts/SuisseIntl-SemiBoldItalic.otf') format('opentype'); font-weight: 600; font-style: italic; font-display: swap; }
+@font-face { font-family: 'Suisse Intl'; src: url('./fonts/SuisseIntl-Thin.otf') format('opentype'); font-weight: 100; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Suisse Intl'; src: url('./fonts/SuisseIntl-ThinItalic.otf') format('opentype'); font-weight: 100; font-style: italic; font-display: swap; }
+@font-face { font-family: 'Suisse Intl'; src: url('./fonts/SuisseIntl-Ultralight.otf') format('opentype'); font-weight: 200; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Suisse Intl'; src: url('./fonts/SuisseIntl-UltralightItalic.otf') format('opentype'); font-weight: 200; font-style: italic; font-display: swap; }
+@font-face { font-family: 'Suisse Intl'; src: url('./fonts/SuisseIntl-Black.otf') format('opentype'); font-weight: 900; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Suisse Intl'; src: url('./fonts/SuisseIntl-BlackItalic.otf') format('opentype'); font-weight: 900; font-style: italic; font-display: swap; }
+@font-face { font-family: 'Suisse Intl'; src: url('./fonts/SuisseIntl-Bold.otf') format('opentype'); font-weight: 700; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Druk Wide Cyr'; src: url('./fonts/drukwidecyr-bold.otf') format('opentype'); font-weight: 700; font-style: normal; font-display: swap; }
+@font-face { font-family: 'FE Blud'; src: url('./fonts/FEBlud-Regular.ttf') format('truetype'); font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Inter'; src: url('./fonts/Inter-ExtraBold.ttf') format('truetype'); font-weight: 800; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Inter'; src: url('./fonts/Inter-ExtraLight.ttf') format('truetype'); font-weight: 200; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Inter'; src: url('./fonts/Inter-Light.ttf') format('truetype'); font-weight: 300; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Inter'; src: url('./fonts/Inter-Medium.ttf') format('truetype'); font-weight: 500; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Inter'; src: url('./fonts/Inter-Regular.ttf') format('truetype'); font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Inter'; src: url('./fonts/Inter-SemiBold.ttf') format('truetype'); font-weight: 600; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Inter'; src: url('./fonts/Inter-Thin.ttf') format('truetype'); font-weight: 100; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Inter'; src: url('./fonts/Inter-Black.ttf') format('truetype'); font-weight: 900; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Inter'; src: url('./fonts/Inter-Bold.ttf') format('truetype'); font-weight: 700; font-style: normal; font-display: swap; }
+@font-face { font-family: 'DaMiOne'; src: url('./fonts/DaMiOne-Regular.ttf') format('truetype'); font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Unsightly'; src: url('./fonts/Unsightly.ttf') format('truetype'); font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Red October'; src: url('./fonts/red-october.october-fat.ttf') format('truetype'); font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Helvetica Neue'; src: url('./fonts/HelveticaNeueBold.otf') format('opentype'); font-weight: 700; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Helvetica Neue'; src: url('./fonts/HelveticaNeueBoldItalic.otf') format('opentype'); font-weight: 700; font-style: italic; font-display: swap; }
+@font-face { font-family: 'Helvetica Neue'; src: url('./fonts/HelveticaNeueHeavy.otf') format('opentype'); font-weight: 800; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Helvetica Neue'; src: url('./fonts/HelveticaNeueHeavyItalic.otf') format('opentype'); font-weight: 800; font-style: italic; font-display: swap; }
+@font-face { font-family: 'Helvetica Neue'; src: url('./fonts/HelveticaNeueItalic.ttf') format('truetype'); font-weight: 400; font-style: italic; font-display: swap; }
+@font-face { font-family: 'Helvetica Neue'; src: url('./fonts/HelveticaNeueLight.otf') format('opentype'); font-weight: 300; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Helvetica Neue'; src: url('./fonts/HelveticaNeueLightItalic.otf') format('opentype'); font-weight: 300; font-style: italic; font-display: swap; }
+@font-face { font-family: 'Helvetica Neue'; src: url('./fonts/HelveticaNeueMedium.otf') format('opentype'); font-weight: 500; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Helvetica Neue'; src: url('./fonts/HelveticaNeueMediumItalic.otf') format('opentype'); font-weight: 500; font-style: italic; font-display: swap; }
+@font-face { font-family: 'Helvetica Neue'; src: url('./fonts/HelveticaNeueRoman.otf') format('opentype'); font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Helvetica Neue'; src: url('./fonts/HelveticaNeueThin.otf') format('opentype'); font-weight: 100; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Helvetica Neue'; src: url('./fonts/HelveticaNeueThinItalic.otf') format('opentype'); font-weight: 100; font-style: italic; font-display: swap; }
+@font-face { font-family: 'Helvetica Neue'; src: url('./fonts/HelveticaNeueUltraLight.otf') format('opentype'); font-weight: 200; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Helvetica Neue'; src: url('./fonts/HelveticaNeueUltraLightItalic.otf') format('opentype'); font-weight: 200; font-style: italic; font-display: swap; }
+@font-face { font-family: 'Helvetica Neue'; src: url('./fonts/HelveticaNeueBlack.otf') format('opentype'); font-weight: 900; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Helvetica Neue'; src: url('./fonts/HelveticaNeueBlackItalic.otf') format('opentype'); font-weight: 900; font-style: italic; font-display: swap; }
