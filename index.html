@@ -40,13 +40,15 @@
     .axis-signal .number { margin: 0; white-space: nowrap; width: max-content; }
     .axis-signal h1, .axis-signal h2 { margin: 0; }
     .axis-signal blockquote { margin: 0; padding: 0; }
-    .axis-body p { margin: 0; }
+    .axis-body p { margin: 0; text-indent: min(calc(var(--body-indent, 0) * 1em), 50%); }
+    .axis-body p.has-plastic-lines { text-indent: 0; }
     .axis-body { font-family: var(--body-font, Arial), sans-serif; font-weight: var(--body-weight, 400); }
     .axis-signal { font-family: var(--signal-font, Arial), sans-serif; font-weight: var(--signal-weight, 400); text-transform: var(--signal-case, none); }
     .axis-signal { text-align: var(--signal-align, left); }
     .axis-heading { grid-column: 3; color: var(--heading-ink); font-family: var(--heading-font), sans-serif; font-weight: var(--heading-weight); font-size: var(--heading-size); line-height: var(--heading-line-height); text-align: var(--heading-align); text-transform: var(--heading-case); }
     .axis-heading > * { margin: 0; width: min(var(--heading-text-width, 100%), calc(100vw - 32px)); overflow-wrap: anywhere; }
-    .plastic-line { display: block; white-space: nowrap; transform: translate3d(var(--line-x, 0px), 0, 0); will-change: transform; }
+    .plastic-line { display: block; white-space: nowrap; text-indent: 0; transform: translate3d(var(--line-x, 0px), 0, 0); will-change: transform; }
+    .plastic-line:first-child { padding-inline-start: min(calc(var(--body-indent, 0) * 1em), 50%); }
     @media (max-width: 720px) {
       .axis-row { column-gap: 24px; }
     }
@@ -164,13 +166,14 @@
       "paragraphAir": 0,
       "rowGap": 0,
       "bodyFontSize": 18,
-      "bodyColumn": 62,
+      "bodyColumn": 45,
       "bodyFont": "Suisse Intl",
       "signalFont": "Druk Wide Cyr",
-      "bodyWeight": "400",
+      "bodyWeight": "300",
       "signalWeight": "700",
       "signalCase": "none",
       "bodyLineHeight": 1.16,
+      "bodyIndent": 6.3,
       "bodyPlasticity": 100,
       "signalFontSize": 60,
       "signalLineHeight": 1.48,
@@ -242,11 +245,24 @@
       "axisCoordinatesVersion": 5,
       "uniformInkVersion": 1,
       "bodyTrajectoryVersion": 1,
-      "headingTrajectoryVersion": 1
+      "headingTrajectoryVersion": 1,
+      "bodyColumnVersion": 1,
+      "bodyTypographyVersion": 1
     };
     const P = Object.assign({}, DEFAULTS);
     let savedParams = {};
     try { savedParams = JSON.parse(localStorage.getItem('horizontal-longread-params') || '{}'); Object.assign(P, savedParams); } catch (error) {}
+    const migrateBodyColumn = savedParams.bodyColumnVersion !== DEFAULTS.bodyColumnVersion;
+    if (migrateBodyColumn) {
+      P.bodyColumn = DEFAULTS.bodyColumn;
+      P.bodyColumnVersion = DEFAULTS.bodyColumnVersion;
+    }
+    const migrateBodyTypography = savedParams.bodyTypographyVersion !== DEFAULTS.bodyTypographyVersion;
+    if (migrateBodyTypography) {
+      P.bodyWeight = DEFAULTS.bodyWeight;
+      P.bodyIndent = DEFAULTS.bodyIndent;
+      P.bodyTypographyVersion = DEFAULTS.bodyTypographyVersion;
+    }
     // Одноразово заменяем старую локально сохранённую кривую первой оси.
     // После этого пользователь может снова редактировать её без сбросов.
     const migrateBodyTrajectory = savedParams.bodyTrajectoryVersion !== DEFAULTS.bodyTrajectoryVersion;
@@ -550,6 +566,7 @@
       root.setProperty('--row-gap', `${P.rowGap}px`);
       root.setProperty('--body-size', `${P.bodyFontSize}px`);
       root.setProperty('--body-line-height', P.bodyLineHeight);
+      root.setProperty('--body-indent', P.bodyIndent);
       root.setProperty('--signal-size', `${P.signalFontSize}px`);
       root.setProperty('--signal-line-height', P.signalLineHeight);
       root.setProperty('--body-column', `${P.bodyColumn}fr`);
@@ -583,6 +600,7 @@
         ['bodyAlign', 'Выключка', 'выключка'],
         ['bodyFontSize', 'Кегль', 'кегль', { ot0: 12, do: 36 }],
         ['bodyLineHeight', 'Межстрочка', 'доля', { ot: 'кегль', kak: '×', ot0: 1, do: 2.5 }],
+        ['bodyIndent', 'Втяжка', 'доля', { ot: 'кегль', kak: '×', ot0: 0, do: 10, shag: 0.1 }],
         ['bodyPlasticity', 'Пластичность', 'доля', { ot: 'своё', ot0: 0, do: 100, shag: 1 }],
         ['h', 'Ось номеров: текст'],
         ['signalInk', 'Краска', 'цвет'],
@@ -631,6 +649,7 @@
         bodyStrength: 'Общая амплитуда движения обеих осей по их кривым.',
         bodyFontSize: 'Размер букв основного текста.',
         bodyLineHeight: 'Расстояние между строками основного текста.',
+        bodyIndent: 'Сдвиг только первой строки абзаца внутрь. В долях кегля: 2 × при 18 px — 36 px. На узком экране ограничен половиной колонки.',
         bodyPlasticity: '0 — абзац скользит целиком; 100 — каждая строка считывает кривую на своей высоте. Буквы не поворачиваются, высота абзаца сохраняется.',
         rowGap: 'Общий интервал между соседними элементами. Делится поровну на верх и низ каждой общей строки всех трёх осей.',
         signalTrajectory: 'Вертикаль кривой совпадает с положением блока: при скролле вниз кривая считывается снизу вверх. По горизонтали 1 — её исходное место, 0 — пустое место в оси текста.',
@@ -639,7 +658,7 @@
       },
       onChange: function (key) {
         applyAppearance();
-        if (!key || ['bodyFont', 'bodyWeight', 'bodyFontSize', 'bodyLineHeight', 'bodyColumn', 'bodyAlign', 'bodyPlasticity', 'signalFont', 'signalWeight', 'signalFontSize'].includes(key)) rebuildBodyLines();
+        if (!key || ['bodyFont', 'bodyWeight', 'bodyFontSize', 'bodyLineHeight', 'bodyIndent', 'bodyColumn', 'bodyAlign', 'bodyPlasticity', 'signalFont', 'signalWeight', 'signalFontSize'].includes(key)) rebuildBodyLines();
         updateTrajectories();
         panel.save();
       }
@@ -659,7 +678,7 @@
       window.setTimeout(() => { saveSettings.textContent = 'Сохранить настройки'; }, 1200);
     });
     panel.panel.appendChild(saveSettings);
-    if (migrateBodyTrajectory || migrateHeadingTrajectory) panel.save();
+    if (migrateBodyTrajectory || migrateHeadingTrajectory || migrateBodyColumn || migrateBodyTypography) panel.save();
   </script>
 </body>
 </html>
