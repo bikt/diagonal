@@ -25,7 +25,7 @@
        точно повторяет место элемента первой. */
     .text-axis { display: none; }
     .two-axes { width: min(100% - clamp(32px, 8vw, 160px), 1320px); margin: 0 auto; padding: clamp(48px, 9vw, 144px) 0; }
-    .axis-row { display: grid; grid-template-columns: minmax(0, 1.65fr) minmax(0, 1fr); column-gap: clamp(32px, 7vw, 150px); padding-block: calc(10px + var(--paragraph-air, 0px)); }
+    .axis-row { display: grid; grid-template-columns: minmax(0, var(--body-column, 62.26fr)) minmax(0, var(--signal-column, 37.74fr)); column-gap: clamp(32px, 7vw, 150px); padding-block: calc(10px + var(--paragraph-air, 0px)); }
     .axis-cell { min-width: 0; }
     .axis-body { grid-column: 1; text-align: var(--body-align, left); font-size: var(--body-size, inherit); line-height: var(--body-line-height, inherit); }
     .axis-signal { grid-column: 2; color: var(--signal-ink); font-size: var(--signal-size, inherit); line-height: var(--signal-line-height, inherit); }
@@ -37,8 +37,10 @@
     .axis-signal h1, .axis-signal h2 { margin: 0; }
     .axis-signal blockquote { margin: 0; padding: 0; }
     .axis-body p { margin: 0; }
+    .axis-body { font-family: var(--body-font, Arial), sans-serif; font-weight: var(--body-weight, 400); }
+    .axis-signal { font-family: var(--signal-font, Arial), sans-serif; font-weight: var(--signal-weight, 400); text-transform: var(--signal-case, none); }
     @media (max-width: 720px) {
-      .axis-row { grid-template-columns: minmax(0, 1.28fr) minmax(110px, .72fr); column-gap: 24px; }
+      .axis-row { column-gap: 24px; }
     }
   </style>
 </head>
@@ -152,6 +154,12 @@
       trajectoryAnchor: 45,
       paragraphAir: 0,
       bodyFontSize: 14,
+      bodyColumn: 62.26,
+      bodyFont: 'Inter',
+      signalFont: 'Inter',
+      bodyWeight: '400',
+      signalWeight: '400',
+      signalCase: 'none',
       bodyLineHeight: 1.48,
       signalFontSize: 14,
       signalLineHeight: 1.48,
@@ -246,8 +254,9 @@
         const signalItem = signal.firstElementChild;
         const bodyRect = body.getBoundingClientRect();
         const signalRect = signal.getBoundingClientRect();
-        const bodyProgress = Math.max(0, Math.min(1, 0.5 + (anchor - (bodyRect.top + bodyRect.height / 2)) / Math.max(1, P.bodyPath)));
-        const signalProgress = Math.max(0, Math.min(1, 0.5 + (anchor - (signalRect.top + signalRect.height / 2)) / Math.max(1, P.bodyPath)));
+        // Вертикаль кривой текста совпадает с экраном: блок поднимается — Y уменьшается.
+        const bodyProgress = Math.max(0, Math.min(1, 0.5 + ((bodyRect.top + bodyRect.height / 2) - anchor) / Math.max(1, P.bodyPath)));
+        const signalProgress = Math.max(0, Math.min(1, 0.5 + ((signalRect.top + signalRect.height / 2) - anchor) / Math.max(1, P.bodyPath)));
         const bodyPoint = pointAtScroll(P.bodyTrajectory, bodyProgress);
         const signalPoint = pointAtScroll(P.signalTrajectory, signalProgress);
         // X — общая горизонтальная координата двух осей: 0 — ось текста,
@@ -307,19 +316,34 @@
       root.setProperty('--body-line-height', P.bodyLineHeight);
       root.setProperty('--signal-size', `${P.signalFontSize}px`);
       root.setProperty('--signal-line-height', P.signalLineHeight);
+      root.setProperty('--body-column', `${P.bodyColumn}fr`);
+      root.setProperty('--signal-column', `${100 - P.bodyColumn}fr`);
+      root.setProperty('--body-font', `"${P.bodyFont}"`);
+      root.setProperty('--signal-font', `"${P.signalFont}"`);
+      root.setProperty('--body-weight', P.bodyWeight);
+      root.setProperty('--signal-weight', P.signalWeight);
+      root.setProperty('--signal-case', P.signalCase);
     }
     applyAppearance();
 
     const MESTA = { 'Ось текста': '.axis-body', 'Ось номеров': '.axis-signal' };
+    const FONT_CHOICES = [['Inter', 'Inter'], ['Arial', 'Arial'], ['Verdana', 'Verdana'], ['Georgia', 'Georgia'], ['Times New Roman', 'Times New Roman'], ['Courier New', 'Courier New']];
+    const WEIGHT_CHOICES = [['300', 'Light'], ['400', 'Regular'], ['500', 'Medium'], ['600', 'Semibold'], ['700', 'Bold']];
     const ZAKON = [
         ['h', 'Основной текст'],
         ['ink', 'Краска', 'цвет'],
+        ['bodyFont', 'Шрифт', 'выбор', { iz: FONT_CHOICES }],
+        ['bodyWeight', 'Начертание', 'выбор', { iz: WEIGHT_CHOICES }],
+        ['bodyColumn', 'Ширина колонки', 'доля', { ot: 'лента', ot0: 20, do: 85, shag: 1 }],
         ['bodyAlign', 'Выключка', 'выключка'],
         ['bodyFontSize', 'Кегль', 'кегль', { ot0: 12, do: 36 }],
         ['bodyLineHeight', 'Межстрочка', 'доля', { ot: 'кегль', kak: '×', ot0: 1, do: 2.5 }],
         ['paragraphAir', 'Разрядка абзацев, px', 0, 100, 2],
         ['h', 'Ось номеров: текст'],
         ['signalInk', 'Краска', 'цвет'],
+        ['signalFont', 'Шрифт', 'выбор', { iz: FONT_CHOICES }],
+        ['signalWeight', 'Начертание', 'выбор', { iz: WEIGHT_CHOICES }],
+        ['signalCase', 'Регистр', 'выбор', { iz: [['none', 'Обычный'], ['uppercase', 'АППЕРКЕЙС']] }],
         ['signalFontSize', 'Кегль', 'кегль', { ot0: 12, do: 36 }],
         ['signalLineHeight', 'Межстрочка', 'доля', { ot: 'кегль', kak: '×', ot0: 1, do: 2.5 }],
         ['h', 'Страница'],
@@ -328,10 +352,8 @@
     const DEFS = StendPanel.izObyavleniya(ZAKON, MESTA);
     DEFS.push(
       ['h', 'Траектория осей'],
-      ['trajectoryAnchor', 'Положение композиции, % экрана', 0, 90, 1],
       ['bodyTrajectory', 'Кривая текста: X — в сторону, Y — скролл', 'traektoriya', { mesto: '.two-axes' }],
       ['bodyPath', 'Длина прохода обеих осей, px', 200, 2000, 10],
-      ['bodyStrength', 'Сила обеих осей, %', 0, 200, 1],
       ['h', 'Вторая ось: собственная кривая'],
       ['signalTrajectory', 'Кривая номеров: X — в сторону, Y — скролл', 'traektoriya', { mesto: '.two-axes' }],
     );
@@ -345,17 +367,17 @@
       mesta: MESTA,
       desc: {
         trajectoryAnchor: 'Высота окна, в которой обе оси считывают середину своих траекторий. Большее значение сдвигает композицию вниз.',
-        bodyTrajectory: 'Вертикаль кривой — ход скролла. По горизонтали 0 — место оси текста, 1 — место оси номеров.',
+        bodyTrajectory: 'Вертикаль кривой совпадает с положением блока: при скролле вниз кривая считывается снизу вверх. По горизонтали 0 — место оси текста, 1 — место оси номеров.',
         bodyPath: 'Длина участка прокрутки, за который обе оси проходят свои собственные кривые.',
         bodyStrength: 'Общая амплитуда движения обеих осей по их кривым.',
         bodyFontSize: 'Размер букв основного текста.',
         bodyLineHeight: 'Расстояние между строками основного текста.',
         paragraphAir: 'Дополнительное пустое место вокруг каждой синхронизированной строки.',
-        signalTrajectory: 'Вторая ось буквально проходит эту самостоятельную кривую. Вертикаль — ход скролла; по горизонтали 1 — её исходное место, 0 — пустое место в оси текста.',
+        signalTrajectory: 'Вертикаль кривой совпадает с положением блока: при скролле вниз кривая считывается снизу вверх. По горизонтали 1 — её исходное место, 0 — пустое место в оси текста.',
         signalFontSize: 'Размер букв второй оси.',
         signalLineHeight: 'Расстояние между строками второй оси.'
       },
-      onChange: function () { updateTrajectories(); applyAppearance(); }
+      onChange: function () { applyAppearance(); updateTrajectories(); }
     });
 
     const saveSettings = document.createElement('button');
