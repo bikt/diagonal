@@ -240,11 +240,19 @@
       "styleDefaultsVersion": 4,
       "trajectoryAnchorVersion": 4,
       "axisCoordinatesVersion": 5,
-      "uniformInkVersion": 1
+      "uniformInkVersion": 1,
+      "bodyTrajectoryVersion": 1
     };
     const P = Object.assign({}, DEFAULTS);
     let savedParams = {};
     try { savedParams = JSON.parse(localStorage.getItem('horizontal-longread-params') || '{}'); Object.assign(P, savedParams); } catch (error) {}
+    // Одноразово заменяем старую локально сохранённую кривую первой оси.
+    // После этого пользователь может снова редактировать её без сбросов.
+    const migrateBodyTrajectory = savedParams.bodyTrajectoryVersion !== DEFAULTS.bodyTrajectoryVersion;
+    if (migrateBodyTrajectory) {
+      P.bodyTrajectory = JSON.parse(JSON.stringify(DEFAULTS.bodyTrajectory));
+      P.bodyTrajectoryVersion = DEFAULTS.bodyTrajectoryVersion;
+    }
     // Новые стартовые цвета и выключка применяются один раз и не мешают
     // последующим сохранённым настройкам пользователя.
     if (savedParams.styleDefaultsVersion !== 4) {
@@ -645,6 +653,7 @@
       window.setTimeout(() => { saveSettings.textContent = 'Сохранить настройки'; }, 1200);
     });
     panel.panel.appendChild(saveSettings);
+    if (migrateBodyTrajectory) panel.save();
   </script>
 </body>
 </html>
