@@ -175,13 +175,14 @@
       "bodyLineHeight": 1,
       "bodyIndent": 4.7,
       "bodyPlasticity": 100,
-      "signalFontSize": 60,
+      "bodyReadZone": 54,
+      "signalFontSize": 32,
       "signalLineHeight": 1.48,
       "signalAlign": "left",
       "headingFont": "Druk Wide Cyr",
       "headingWeight": "700",
       "headingCase": "none",
-      "headingFontSize": 24,
+      "headingFontSize": 32,
       "headingTextWidth": 200,
       "headingLineHeight": 1,
       "headingAlign": "left",
@@ -189,14 +190,20 @@
       "headingTrajectory": {
         "uzly": [
           {
-            "x": 0.9788,
-            "y": 0.209,
-            "r": 0.5
+            "x": 0.6915,
+            "y": 0.0215,
+            "r": 0.5,
+            "ho": { "x": -0.005, "y": -0.2812 },
+            "z": "ugoldlina",
+            "hi": { "x": 0.005, "y": 0.2812 }
           },
           {
-            "x": 0.9788,
+            "x": 0.6865,
             "y": 0.9694,
-            "r": 0.5
+            "r": 0.5,
+            "hi": { "x": 0.0101, "y": -0.1666 },
+            "z": "ugoldlina",
+            "ho": { "x": -0.0101, "y": 0.1666 }
           }
         ],
         "zamknut": false
@@ -215,7 +222,8 @@
           {
             "x": 0.248,
             "y": 0.6657,
-            "r": 1
+            "r": 0.5,
+            "z": "ugoldlina"
           },
           {
             "x": 0.006,
@@ -228,13 +236,13 @@
       "signalTrajectory": {
         "uzly": [
           {
-            "x": 0.8276,
-            "y": 0.5363,
+            "x": 0.7067,
+            "y": 0.4946,
             "r": 0.5
           },
           {
-            "x": 0.0111,
-            "y": 0.9425,
+            "x": 0.7067,
+            "y": 0.9946,
             "r": 0.5
           }
         ],
@@ -242,16 +250,22 @@
       },
       "styleDefaultsVersion": 4,
       "trajectoryAnchorVersion": 4,
-      "axisCoordinatesVersion": 5,
+      "axisCoordinatesVersion": 6,
       "uniformInkVersion": 1,
-      "bodyTrajectoryVersion": 1,
-      "headingTrajectoryVersion": 1,
+      "bodyTrajectoryVersion": 2,
+      "headingTrajectoryVersion": 2,
       "bodyColumnVersion": 1,
-      "bodyTypographyVersion": 2
+      "bodyTypographyVersion": 2,
+      "readingDefaultsVersion": 1
     };
     const P = Object.assign({}, DEFAULTS);
     let savedParams = {};
     try { savedParams = JSON.parse(localStorage.getItem('horizontal-longread-params') || '{}'); Object.assign(P, savedParams); } catch (error) {}
+    const migrateReadingDefaults = savedParams.readingDefaultsVersion !== DEFAULTS.readingDefaultsVersion;
+    if (migrateReadingDefaults) {
+      for (const key of ['bodyReadZone', 'signalFontSize', 'headingFontSize']) P[key] = DEFAULTS[key];
+      P.readingDefaultsVersion = DEFAULTS.readingDefaultsVersion;
+    }
     const migrateBodyColumn = savedParams.bodyColumnVersion !== DEFAULTS.bodyColumnVersion;
     if (migrateBodyColumn) {
       P.bodyColumn = DEFAULTS.bodyColumn;
@@ -288,9 +302,9 @@
       P.trajectoryAnchor = DEFAULTS.trajectoryAnchor;
       P.trajectoryAnchorVersion = 4;
     }
-    if (savedParams.axisCoordinatesVersion !== 5) {
+    if (savedParams.axisCoordinatesVersion !== 6) {
       P.signalTrajectory = DEFAULTS.signalTrajectory;
-      P.axisCoordinatesVersion = 5;
+      P.axisCoordinatesVersion = 6;
     }
 
     // Исправляем только прежнюю перепутанную пару плеч, не сбрасывая другие правки.
@@ -451,6 +465,11 @@
 
     function updateTrajectories() {
       const anchor = window.innerHeight * P.trajectoryAnchor / 100;
+      // Первая точка кривой — завершение движения к прямой колонке.
+      // Она достигается у границы чтения, а не у верхнего края окна.
+      const readBoundary = window.innerHeight * P.bodyReadZone / 100;
+      const bodyEndY = StendPanel.put.tochka(P.bodyTrajectory, 0, 1, 1).y;
+      const readingProgress = y => Math.max(0, Math.min(1, bodyEndY + (y - readBoundary) / Math.max(1, P.bodyPath)));
       const firstRow = document.querySelector('.axis-row');
       if (!firstRow) return;
       const origins = ['body', 'signal', 'heading'].map(axis => firstRow.querySelector(`.axis-${axis}`).getBoundingClientRect().left);
@@ -468,7 +487,8 @@
         const bodyRect = body.getBoundingClientRect();
         const signalRect = signal.getBoundingClientRect();
         // Вертикаль кривой текста совпадает с экраном: блок поднимается — Y уменьшается.
-        const bodyProgress = Math.max(0, Math.min(1, 0.5 + ((bodyRect.top + bodyRect.height / 2) - anchor) / Math.max(1, P.bodyPath)));
+        const sharedProgress = Math.max(0, Math.min(1, 0.5 + ((bodyRect.top + bodyRect.height / 2) - anchor) / Math.max(1, P.bodyPath)));
+        const bodyProgress = readingProgress(bodyRect.top + bodyRect.height / 2);
         const signalProgress = Math.max(0, Math.min(1, 0.5 + ((signalRect.top + signalRect.height / 2) - anchor) / Math.max(1, P.bodyPath)));
         const bodyPoint = pointAtScroll(P.bodyTrajectory, bodyProgress);
         const signalPoint = pointAtScroll(P.signalTrajectory, signalProgress);
@@ -482,7 +502,7 @@
           bodyItem.style.setProperty('--trajectory-x', lines.length ? '0px' : `${bodyFit(bodyShift)}px`);
           lines.forEach(line => {
             const rect = line.getBoundingClientRect();
-            const progress = Math.max(0, Math.min(1, 0.5 + (rect.top + rect.height / 2 - anchor) / Math.max(1, P.bodyPath)));
+            const progress = readingProgress(rect.top + rect.height / 2);
             const point = pointAtScroll(P.bodyTrajectory, progress);
             const lineShift = point.x * span * P.bodyStrength / 100;
             const shift = bodyShift + (lineShift - bodyShift) * P.bodyPlasticity / 100;
@@ -493,7 +513,7 @@
         const heading = row.querySelector('.axis-heading');
         const headingItem = heading.firstElementChild;
         if (headingItem) {
-          const headingPoint = pointAtScroll(P.headingTrajectory, bodyProgress);
+          const headingPoint = pointAtScroll(P.headingTrajectory, sharedProgress);
           const headingSpan = heading.getBoundingClientRect().left - bodyRect.left;
           headingItem.style.setProperty('--trajectory-x', `${headingFit((headingPoint.x - 1) * headingSpan * P.bodyStrength / 100)}px`);
         }
@@ -603,6 +623,7 @@
         ['bodyLineHeight', 'Межстрочка', 'доля', { ot: 'кегль', kak: '×', ot0: 1, do: 2.5 }],
         ['bodyIndent', 'Втяжка', 'доля', { ot: 'кегль', kak: '×', ot0: 0, do: 10, shag: 0.1 }],
         ['bodyPlasticity', 'Пластичность', 'доля', { ot: 'своё', ot0: 0, do: 100, shag: 1 }],
+        ['bodyReadZone', 'Зона чтения', 'доля', { ot: 'экран', ot0: 0, do: 100, shag: 1 }],
         ['h', 'Ось номеров: текст'],
         ['signalInk', 'Краска', 'цвет'],
         ['signalFont', 'Шрифт', 'выбор', { iz: FONT_CHOICES }],
@@ -652,6 +673,7 @@
         bodyLineHeight: 'Расстояние между строками основного текста.',
         bodyIndent: 'Сдвиг только первой строки абзаца внутрь. В долях кегля: 2 × при 18 px — 36 px. На узком экране ограничен половиной колонки.',
         bodyPlasticity: '0 — абзац скользит целиком; 100 — каждая строка считывает кривую на своей высоте. Буквы не поворачиваются, высота абзаца сохраняется.',
+        bodyReadZone: 'Высота от верхнего края окна, к которой основной текст завершает движение по кривой и становится прямой колонкой. 50% — середина экрана; большее значение выравнивает раньше. Номера и заголовки не меняются.',
         rowGap: 'Общий интервал между соседними элементами. Делится поровну на верх и низ каждой общей строки всех трёх осей.',
         signalTrajectory: 'Вертикаль кривой совпадает с положением блока: при скролле вниз кривая считывается снизу вверх. По горизонтали 1 — её исходное место, 0 — пустое место в оси текста.',
         signalFontSize: 'Размер букв второй оси.',
@@ -679,7 +701,7 @@
       window.setTimeout(() => { saveSettings.textContent = 'Сохранить настройки'; }, 1200);
     });
     panel.panel.appendChild(saveSettings);
-    if (migrateBodyTrajectory || migrateHeadingTrajectory || migrateBodyColumn || migrateBodyTypography) panel.save();
+    if (migrateBodyTrajectory || migrateHeadingTrajectory || migrateBodyColumn || migrateBodyTypography || migrateReadingDefaults) panel.save();
   </script>
 </body>
 </html>
